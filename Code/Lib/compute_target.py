@@ -33,6 +33,9 @@ def gainAhead(p):
     g = np.zeros(nrows)
     for i in range(0,nrows-1):
         g[i] = (p[i+1]-p[i])/p[i]
+        # if % change is 0, change to small number
+        if (abs(g[i]) < 0.0001):
+            g[i] = 0.0001
     return(g)
     
 def priceChange(p):
@@ -67,17 +70,31 @@ if __name__ == "__main__":
     print (targetDataSet['beLong'].value_counts())
     print ("out of ", nrows)
     
-    testFirstYear = "2015-01-01"
-    testFinalYear = "2015-06-30"
+    testFirstYear = "2015-10-01"
+    testFinalYear = "2016-01-30"
     qtPlot = targetDataSet.ix[testFirstYear:testFinalYear]
     
-    # Plot price and belong indicator
-    fig = plt.figure(figsize=(15,8  ))
-    ax1 = fig.add_axes([0.1, 0.5, 0.8, 0.4],
-                       xticklabels=[])
-    ax2 = fig.add_axes([0.1, 0.1, 0.8, 0.4],
-                       ylim=(-1,1))
-    x = np.linspace(0, 10)
-    ax1.plot(qtPlot['Close'])
-    ax2.plot(qtPlot['beLong']);
+    numSubPlots = 2
+    # format the ticks
+    fig, axes = plt.subplots(numSubPlots,1, figsize=(numSubPlots*5,8), sharex=True)
+    
+    axes[0].plot(qtPlot['Close'], label=issue)
+    axes[1].plot(qtPlot['beLong'], label='beLong');
+
+    # Bring subplots close to each other.
+    plt.subplots_adjust(hspace=0.1)
+
+    #plt.legend((issue,'RSI','ROC','DPO','ATR'),loc='upper left')
+    # Hide x labels and tick labels for all but bottom plot.
+    for ax in axes:
+            ax.label_outer()
+            ax.legend(loc='upper left', frameon=True, fontsize=8)
+            ax.grid(True, which='both')
+            fig.autofmt_xdate()
+            ax.xaxis_date()
+            ax.autoscale_view()
+            ax.grid(b=True, which='major', color='k', linestyle='-')
+            ax.grid(b=True, which='minor', color='r', linestyle='-', alpha=0.2)
+            ax.minorticks_on()
+            ax.tick_params(axis='y',which='minor',bottom='off')
     

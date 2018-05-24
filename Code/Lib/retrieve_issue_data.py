@@ -14,8 +14,11 @@ from sklearn import mixture as mix
 import seaborn as sns 
 import matplotlib.pyplot as plt
 import os
+from pandas.tseries.holiday import USFederalHolidayCalendar
+from pandas.tseries.offsets import CustomBusinessDay
 
 def read_issue_data(issue, dataLoadStartDate, dataLoadEndDate):
+    us_cal = CustomBusinessDay(calendar=USFederalHolidayCalendar())
     issue_name = issue + '.pkl'
     file_name = os.path.join(r'C:\Users\kruegkj\kevinkr OneDrive\OneDrive\IssueData\Equity', issue_name)
     
@@ -24,23 +27,27 @@ def read_issue_data(issue, dataLoadStartDate, dataLoadEndDate):
     try:
         df = pd.read_pickle(file_name)
     except:
+        print("================================")
         print("No information for ticker '%s'" % issue)
-    print (df.shape)
-    print (df.head())
+        print("================================")
+        raise SystemExit
+    #print (df.shape)
+    #print (df.head(20))
     
     print ("Successfully retrieved Primary")
     df = df.drop("Symbol", axis =1)
     df.set_index('Date', inplace=True)
     df['Pri'] = df.Close
-    df2 = df.ix[dataLoadStartDate:dataLoadEndDate]
-    return df2
+    df2 = pd.date_range(start=dataLoadStartDate, end=dataLoadEndDate, freq=us_cal)
+    df3 = df.reindex(df2)
+    return df3
 
 
 if __name__ == "__main__":
     issue = "TLT"
-    dataLoadStartDate = "2005-12-22"
-    dataLoadEndDate = "2016-01-04"
+    dataLoadStartDate = "2017-12-22"
+    dataLoadEndDate = "2018-04-04"
     dataSet = read_issue_data(issue, dataLoadStartDate, dataLoadEndDate)
     nrows = dataSet.shape[0]
-    print ("nrows: ", nrows)
+    print (dataSet.shape)
     print (dataSet.head(20))
