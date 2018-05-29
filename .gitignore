@@ -18,7 +18,11 @@ $RECYCLE.BIN/
 *.lnk
 
 # Byte compiled
-__pycache__/
+*/__pycache__/*.pyc
+Code/Lib/__pycache__/*.pyc
+
+# csv files
+*.csv
 
 # =========================
 # Operating System Files
