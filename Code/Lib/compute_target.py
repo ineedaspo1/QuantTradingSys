@@ -36,7 +36,7 @@ def gainAhead(p):
         # if % change is 0, change to small number
         if (abs(g[i]) < 0.0001):
             g[i] = 0.0001
-    return(g)
+    return g
     
 def priceChange(p):
     nrows = p.shape[0]
@@ -51,7 +51,7 @@ def setTarget(p, direction, beLongThreshold):
     return p
 
 if __name__ == "__main__":
-    issue = "XRT"
+    issue = "xle"
     dataLoadStartDate = "1998-12-22"
     dataLoadEndDate = "2016-01-04"
     beLongThreshold = 0.01
@@ -83,7 +83,7 @@ if __name__ == "__main__":
 
     # Bring subplots close to each other.
     plt.subplots_adjust(hspace=0.1)
-
+    
     #plt.legend((issue,'RSI','ROC','DPO','ATR'),loc='upper left')
     # Hide x labels and tick labels for all but bottom plot.
     for ax in axes:

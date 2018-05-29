@@ -23,14 +23,14 @@ rcParams['figure.figsize'] = 14,3
 
 
 if __name__ == "__main__":
-    issue = "xle"
+    issue = "tlt"
     
-    years_to_load = 4
-    segments = 8
+    years_to_load = 1
+    segments = 6
     segment_months = int((years_to_load*12)/segments)
     
     # date parsing for analysis
-    dataLoadEndDate = datetime.date(2018, 3, 30) 
+    dataLoadEndDate = datetime.date(2018, 4, 1) 
     dataLoadStartDate = dataLoadEndDate - relativedelta(years=years_to_load)
     print(dataLoadStartDate)
     

@@ -45,9 +45,28 @@ def read_issue_data(issue, dataLoadStartDate, dataLoadEndDate):
 
 if __name__ == "__main__":
     issue = "TLT"
-    dataLoadStartDate = "2017-12-22"
-    dataLoadEndDate = "2018-04-04"
+    dataLoadStartDate = "2017-04-01"
+    dataLoadEndDate = "2018-04-01"
     dataSet = read_issue_data(issue, dataLoadStartDate, dataLoadEndDate)
     nrows = dataSet.shape[0]
     print (dataSet.shape)
     print (dataSet.head(20))
+    
+    plt.style.use('seaborn-ticks')
+    fig, ax = plt.subplots()
+    
+    plt.plot(dataSet['Close'], label=issue)
+    plt.legend(loc='upper left')
+    for ax in axes:
+            ax.label_outer()
+            ax.legend(loc='upper left', frameon=True, fontsize=8)
+            ax.grid(True, which='both')
+            fig.autofmt_xdate()
+            ax.xaxis_date()
+            ax.autoscale_view()
+            ax.grid(b=True, which='major', color='k', linestyle='-')
+            ax.grid(b=True, which='minor', color='r', linestyle='-', alpha=0.2)
+            ax.minorticks_on()
+            ax.tick_params(axis='y',which='minor',bottom='off')
+    
+    

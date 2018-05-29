@@ -47,7 +47,7 @@ def set_segment_and_load_signal(issue, years_to_load, segments, endDate, beLongT
     while i < segments:
         endPlotDate = startPlotDate + relativedelta(months=segment_months)
         qtPlot = targetDataSet.ix[startPlotDate:endPlotDate]   
-        
+        """
         # Plot price and belong indicator
         fig = plt.figure(figsize=(15,8  ))
         ax1 = fig.add_axes([0.1, 0.5, 0.8, 0.4],
@@ -62,6 +62,33 @@ def set_segment_and_load_signal(issue, years_to_load, segments, endDate, beLongT
         plt.legend(loc='best')
         print("\n\n\n")
         plt.show(block=False)
+        """
+        numSubPlots = 2
+        # format the ticks
+        fig, axes = plt.subplots(numSubPlots,1, figsize=(numSubPlots*4,6), sharex=True)
+        
+        axes[0].plot(qtPlot['Close'], label=issue)
+        axes[1].plot(qtPlot['beLong'], color='red', label='beLong');
+        plt.legend(loc='best')
+        # Bring subplots close to each other.
+        plt.subplots_adjust(hspace=0.1)
+        
+        #plt.legend((issue,'RSI','ROC','DPO','ATR'),loc='upper left')
+        # Hide x labels and tick labels for all but bottom plot.
+        for ax in axes:
+                ax.label_outer()
+                ax.legend(loc='upper left', frameon=True, fontsize=8)
+                ax.grid(True, which='both')
+                fig.autofmt_xdate()
+                ax.xaxis_date()
+                ax.autoscale_view()
+                ax.grid(b=True, which='major', color='k', linestyle='-')
+                ax.grid(b=True, which='minor', color='r', linestyle='-', alpha=0.2)
+                ax.minorticks_on()
+                ax.tick_params(axis='y',which='minor',bottom='off')
+        print("\n\n\n")
+        plt.show(block=False)
+
         startPlotDate = endPlotDate + relativedelta(days=1)
         i+=1
       
@@ -73,11 +100,11 @@ def set_segment_and_load_signal(issue, years_to_load, segments, endDate, beLongT
  
     
 if __name__ == "__main__":
-    issue = "xle"
-    years_to_load = 4
-    segments = 16
-    dataLoadEndDate = datetime.date(2018, 3, 30)
-    beLongThreshold = 0.005
+    issue = "tlt"
+    years_to_load = 1
+    segments = 6
+    dataLoadEndDate = datetime.date(2018, 4, 1)
+    beLongThreshold = 0
     #segment_months = int((years_to_load*12)/segments)
     
     # date parsing for analysis
