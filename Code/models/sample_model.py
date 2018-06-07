@@ -26,38 +26,39 @@ sys.path.append('../transform')
 sys.path.append('../indicators')
 sys.path.append('../predictors')
 sys.path.append('../utilities')
+from predictors_main import *
+from transformers_main import *
+from plot_utils import *
+from retrieve_issue_data import read_issue_data
+
 import numpy as np
 import pandas as pd
 import matplotlib.pylab as plt
+
 from scipy import stats
 from sklearn.cross_validation import StratifiedShuffleSplit
 from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import AdaBoostClassifier
-from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
-from sklearn.naive_bayes import MultinomialNB
-from sklearn import neighbors
-from sklearn import linear_model
-from sklearn.naive_bayes import GaussianNB
-from sklearn.linear_model import PassiveAggressiveClassifier
-from sklearn.linear_model import Perceptron
-from sklearn.ensemble import RandomForestClassifier
-from sklearn import svm
+#from sklearn.tree import DecisionTreeClassifier
+#from sklearn.ensemble import AdaBoostClassifier
+#from sklearn.ensemble import GradientBoostingClassifier
+#from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+#from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+#from sklearn.naive_bayes import MultinomialNB
+#from sklearn import neighbors
+#from sklearn import linear_model
+#from sklearn.naive_bayes import GaussianNB
+#from sklearn.linear_model import PassiveAggressiveClassifier
+#from sklearn.linear_model import Perceptron
+#from sklearn.ensemble import RandomForestClassifier
+#from sklearn import svm
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
 from sklearn.metrics import f1_score
-from datetime import datetime
+import datetime
+plt.style.use('seaborn-ticks')
 
-def main(): 
-    dataSet = read_issue_data(issue, dataLoadStartDate, dataLoadEndDate)
-    print(issue)
-    nrows = dataSet.shape[0]
-    print ("nrows: ", nrows)
-    return dataSet
 
 if __name__ == "__main__":
     # Get issue data
@@ -65,7 +66,13 @@ if __name__ == "__main__":
     lookback = 16
     dataLoadStartDate = "2014-01-01"
     dataLoadEndDate = "2018-03-30" 
-    dataSet = main()
+    dataSet = read_issue_data(issue, dataLoadStartDate, dataLoadEndDate)
+    print(issue)
+    nrows = dataSet.shape[0]
+    print ("nrows: ", nrows)
+    
+    plotTitle = "Closing price for " + issue + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
+    plot_v1(dataSet['Close'], plotTitle)
     
     #set beLong level
     beLongThreshold = 0
@@ -111,9 +118,6 @@ if __name__ == "__main__":
     
     mmData = mData.ix[startDate:endDate]
     
-    plt.figure(1)    
-    mmData['Pri'].plot(figsize=(13,4  ))
-    
     mmData = mmData.drop(['Pri'],axis=1)
     
     datay = mmData.beLong
@@ -121,6 +125,7 @@ if __name__ == "__main__":
     print ("nrows beLong: ", nrows)
     print(datay.head())
     datay.hist(figsize=(8,4  ))
+    histogram(datay, "", "", "beLong counts")
     
     mmData = mmData.drop(['beLong'],axis=1)
     dataX = mmData

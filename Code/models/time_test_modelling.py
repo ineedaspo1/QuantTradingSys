@@ -18,6 +18,8 @@ import statsmodels.tsa.stattools as ts
 from retrieve_issue_data import read_issue_data
 from stat_tests import *
 from compute_target import *
+from lag_transform import *
+from plot_utils import *
 import pandas as pd
 import numpy as np
 import datetime
@@ -26,16 +28,24 @@ import matplotlib.pylab as plt
 from sklearn.linear_model import LogisticRegression
 import matplotlib as mpl
 plt.style.use('seaborn-ticks')
-
+from pandas.tseries.holiday import USFederalHolidayCalendar
+from pandas.tseries.offsets import CustomBusinessDay
+from pandas.tseries.offsets import BDay
+import matplotlib as mpl
+plt.style.use('seaborn-ticks')
+import matplotlib.ticker as ticker
 
 if __name__ == "__main__":
     issue = "tlt"
-    pivotDate = datetime.date(2018, 4, 1)
+    us_cal = CustomBusinessDay(calendar=USFederalHolidayCalendar())
+    pivotDate = datetime.date(2018, 4, 2)
     inSampleOutOfSampleRatio = 2
     outOfSampleMonths = 2
     inSampleMonths = inSampleOutOfSampleRatio * outOfSampleMonths
-    segments = 2
-    months_to_load = inSampleMonths + segments * outOfSampleMonths
+    print("inSampleMonths: " + str(inSampleMonths))
+    segments = 8
+    months_to_load = outOfSampleMonths + segments * inSampleMonths
+    print("Months to load: " + str(months_to_load))
        
     inSampleStartDate = pivotDate - relativedelta(months=months_to_load)
     dataLoadStartDate = inSampleStartDate - relativedelta(months=1)
@@ -65,7 +75,6 @@ if __name__ == "__main__":
     beLongThreshold = 0
     
     modelStartDate = inSampleStartDate
-    print(modelStartDate)
     modelEndDate = modelStartDate + relativedelta(months=inSampleMonths)
 #    print(modelEndDate)
 #    modelData = dataSet.ix[modelStartDate:modelEndDate]
@@ -73,12 +82,8 @@ if __name__ == "__main__":
 
     # IS only
     for i in range(segments):
-#        inSampleDataSetName = 'isDataSet' + str(i)
-#        print (inSampleDataSetName)
-#        outOfSampleDataSetName = 'oosDataSet' + str(i)
-#        print (outOfSampleDataSetName)
-        modelEndDate = modelStartDate + relativedelta(months=inSampleMonths)
-        modelData = dataSet.ix[modelStartDate:modelEndDate].copy()
+        df2 = pd.date_range(start=modelStartDate, end=modelEndDate, freq=us_cal)
+        modelData = dataSet.reindex(df2)
         #print(modelData)
         
         # set target var
@@ -93,12 +98,12 @@ if __name__ == "__main__":
         
         mmData = mmData.drop(['Open','High','Low','Close'],axis=1)
         
-        plt.style.use('seaborn-ticks')
-        fig, ax = plt.subplots()
-        ax.yaxis.set_major_formatter(mpl.ticker.StrMethodFormatter('{x:,.0f}'))
-        plt.plot(mmData['Pri'], label=issue)
-        plt.legend(loc='upper left')
-        print("\n\n\n")
+        plotTitle = issue + ", " + str(modelStartDate) + " to " + str(modelEndDate)
+        plot_v2x(mmData['Pri'], mmData['beLong'], plotTitle)
+        histogram(mmData['beLong'], x_label="beLong signal", y_label="Frequency", 
+          title = "beLong distribution for " + issue)        
+
+        """
         plt.show(block=False)
         
         mmData = mmData.drop(['Pri'],axis=1)
@@ -194,7 +199,7 @@ if __name__ == "__main__":
         print ("\n\nSymbol is ", issue)
         print ("Learning algorithm is ", model)
         print ("Confusion matrix for %i randomized tests" % iterations)
-        print ("for dates ", startDate, " through ", endDate) 
+        print ("for dates ", modelStartDate, " through ", modelEndDate) 
         print ("----------------------")
         print ("==In Sample==")
         print ("     Predicted")
@@ -224,6 +229,9 @@ if __name__ == "__main__":
         print('Recall: %.2f' % np.mean(recall_scores_oos))
         print('F1: %.2f' % np.mean(f1_scores_oos))
         print ("\nend of run")
+        """
+        modelStartDate = modelEndDate  + BDay(1)
+        modelEndDate = modelStartDate + relativedelta(months=inSampleMonths) - BDay(1)
 
         
         

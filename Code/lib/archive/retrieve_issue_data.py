@@ -6,16 +6,14 @@ Created on Wed May 23 16:17:54 2018
 
 retrieve_issue_data.py
 """
-
-from pandas_datareader import data as web
-import numpy as np
 import pandas as pd
-from sklearn import mixture as mix
-import seaborn as sns 
-import matplotlib.pyplot as plt
 import os
 from pandas.tseries.holiday import USFederalHolidayCalendar
 from pandas.tseries.offsets import CustomBusinessDay
+
+import sys
+sys.path.append('../utilities')
+#from plot_utils import plot_v1
 
 def read_issue_data(issue, dataLoadStartDate, dataLoadEndDate):
     us_cal = CustomBusinessDay(calendar=USFederalHolidayCalendar())
@@ -51,22 +49,24 @@ if __name__ == "__main__":
     nrows = dataSet.shape[0]
     print (dataSet.shape)
     print (dataSet.head(20))
-    
-    plt.style.use('seaborn-ticks')
-    fig, ax = plt.subplots()
-    
-    plt.plot(dataSet['Close'], label=issue)
-    plt.legend(loc='upper left')
-    for ax in axes:
-            ax.label_outer()
-            ax.legend(loc='upper left', frameon=True, fontsize=8)
-            ax.grid(True, which='both')
-            fig.autofmt_xdate()
-            ax.xaxis_date()
-            ax.autoscale_view()
-            ax.grid(b=True, which='major', color='k', linestyle='-')
-            ax.grid(b=True, which='minor', color='r', linestyle='-', alpha=0.2)
-            ax.minorticks_on()
-            ax.tick_params(axis='y',which='minor',bottom='off')
+ 
+    plotTitle = "Closing price for " + issue + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
+    plot_v1(dataSet['Close'], plotTitle)
+#    plt.style.use('seaborn-ticks')
+#    fig, ax = plt.subplots()
+#    
+#    plt.plot(dataSet['Close'], label=issue)
+#    plt.legend(loc='upper left')
+#    for ax in axes:
+#            ax.label_outer()
+#            ax.legend(loc='upper left', frameon=True, fontsize=8)
+#            ax.grid(True, which='both')
+#            fig.autofmt_xdate()
+#            ax.xaxis_date()
+#            ax.autoscale_view()
+#            ax.grid(b=True, which='major', color='k', linestyle='-')
+#            ax.grid(b=True, which='minor', color='r', linestyle='-', alpha=0.2)
+#            ax.minorticks_on()
+#            ax.tick_params(axis='y',which='minor',bottom='off')
     
     

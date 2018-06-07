@@ -19,48 +19,54 @@ Output:
 
 Future addition: Short
 """
+
+
 import numpy as np
-from retrieve_issue_data import *
-import matplotlib.pyplot as plt
 
-def gainAhead(p):
-    # Computes change in the next 1 bar.
-    # p, the base series.
-    # Return is a numpy array of changes.
-    # A change of 1% is 0.01
-    # The final value is unknown.  Its value is 0.0.
-    nrows = p.shape[0]
-    g = np.zeros(nrows)
-    for i in range(0,nrows-1):
-        g[i] = (p[i+1]-p[i])/p[i]
-        # if % change is 0, change to small number
-        if (abs(g[i]) < 0.0001):
-            g[i] = 0.0001
-    return g
+class ComputeTarget:
     
-def priceChange(p):
-    nrows = p.shape[0]
-    pc = np.zeros(nrows)
-    for i in range(1,nrows):
-        pc[i] = (p[i]-p[i-1])/p[i-1]
-    return pc
+    def setTarget(self, p, direction, beLongThreshold):
+        p['gainAhead'] = ComputeTarget.gainAhead(p.Pri)
+        p['beLong'] = np.where(p.gainAhead>beLongThreshold,1,-1)
+        return p
 
-def setTarget(p, direction, beLongThreshold):
-    p['gainAhead'] = gainAhead(p['Pri'])
-    p['beLong'] = np.where(p.gainAhead>beLongThreshold,1,-1)
-    return p
+    def gainAhead(p):
+        # Computes change in the next 1 bar.
+        # p, the base series.
+        # Return is a numpy array of changes.
+        # A change of 1% is 0.01
+        # The final value is unknown.  Its value is 0.0.
+        nrows = p.shape[0]
+        g = np.zeros(nrows)
+        for i in range(0,nrows-1):
+            g[i] = (p[i+1]-p[i])/p[i]
+            # if % change is 0, change to small number
+            if (abs(g[i]) < 0.0001):
+                g[i] = 0.0001
+        return g
+        
+    def priceChange(self, p):
+        nrows = p.shape[0]
+        pc = np.zeros(nrows)
+        for i in range(1,nrows):
+            pc[i] = (p[i]-p[i-1])/p[i-1]
+        return pc
+    
+
 
 if __name__ == "__main__":
-    issue = "xle"
-    dataLoadStartDate = "1998-12-22"
-    dataLoadEndDate = "2016-01-04"
-    beLongThreshold = 0.01
+    dataLoadStartDate = "2014-04-01"
+    dataLoadEndDate = "2018-04-01"
+    issue = "TLT"
     
-    dataSet = read_issue_data(issue, dataLoadStartDate, dataLoadEndDate)
-    nrows = dataSet.shape[0]
-    print ("nrows: ", nrows)
+    dSet = DataRetrieve()
+    dataSet = dSet.read_issue_data(issue)
     
-    targetDataSet = setTarget(dataSet, "Long", beLongThreshold)
+    dataSet = dSet.set_date_range(dataSet, dataLoadStartDate,dataLoadEndDate)
+    
+    beLongThreshold = 0.0
+    ct = ComputeTarget()
+    targetDataSet = ct.setTarget(dataSet, "Long", beLongThreshold)
     nrows = targetDataSet.shape[0]
     print ("nrows: ", nrows)
     print (targetDataSet.shape)
