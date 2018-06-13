@@ -20,6 +20,7 @@ $RECYCLE.BIN/
 # Byte compiled
 */__pycache__/*.pyc
 Code/Lib/__pycache__/*.pyc
+Code/*/__pycache__/*.pyc
 
 # csv files
 *.csv

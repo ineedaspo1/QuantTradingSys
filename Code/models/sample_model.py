@@ -22,9 +22,6 @@ From main, create many of the vairables created as defaults in other modules
 """
 import sys
 sys.path.append('../lib')
-sys.path.append('../transform')
-sys.path.append('../indicators')
-sys.path.append('../predictors')
 sys.path.append('../utilities')
 from predictors_main import *
 from transformers_main import *
