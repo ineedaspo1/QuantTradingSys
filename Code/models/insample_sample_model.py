@@ -32,7 +32,7 @@ from pandas.tseries.offsets import BDay
 #import matplotlib.ticker as ticker
 
 from sklearn.model_selection import StratifiedShuffleSplit
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import precision_score
@@ -49,7 +49,7 @@ if __name__ == "__main__":
     outOfSampleMonths = 2
     inSampleMonths = inSampleOutOfSampleRatio * outOfSampleMonths
     print("inSampleMonths: " + str(inSampleMonths))
-    segments = 1
+    segments = 2
     months_to_load = outOfSampleMonths + segments * inSampleMonths
     print("Months to load: " + str(months_to_load))
        
@@ -138,10 +138,10 @@ if __name__ == "__main__":
         ######################
         # ML section
         
-        iterations = 1
+        iterations = 10
         
-        model = LogisticRegression()
-        modelname = 'LogReg'
+        model = RandomForestClassifier(n_jobs=-1, random_state=55, min_samples_split=5, n_estimators=500, max_features = 'auto', min_samples_leaf = 5, oob_score = 'TRUE')
+        modelname = 'RF'
         
         #  Make 'iterations' index vectors for the train-test split
         sss = StratifiedShuffleSplit(n_splits=iterations,test_size=0.33, random_state=None)
@@ -225,17 +225,17 @@ if __name__ == "__main__":
         print ("f1:   %.2f" % f1OOS)
         print ("\n----------------------")
         
-        print ("\n==In Sample==")
-        print('Accuracy: %.2f' % np.mean(accuracy_scores_is))
-        print('Precision: %.2f' % np.mean(precision_scores_is))
-        print('Recall: %.2f' % np.mean(recall_scores_is))
-        print('F1: %.2f' % np.mean(f1_scores_is))
-        print ("\n==Out Of Sample==")
-        print('Accuracy: %.2f' % np.mean(accuracy_scores_oos))
-        print('Precision: %.2f' % np.mean(precision_scores_oos))
-        print('Recall: %.2f' % np.mean(recall_scores_oos))
-        print('F1: %.2f' % np.mean(f1_scores_oos))
-        print ("\nend of run")
+#        print ("\n==In Sample==")
+#        print('Accuracy: %.2f' % np.mean(accuracy_scores_is))
+#        print('Precision: %.2f' % np.mean(precision_scores_is))
+#        print('Recall: %.2f' % np.mean(recall_scores_is))
+#        print('F1: %.2f' % np.mean(f1_scores_is))
+#        print ("\n==Out Of Sample==")
+#        print('Accuracy: %.2f' % np.mean(accuracy_scores_oos))
+#        print('Precision: %.2f' % np.mean(precision_scores_oos))
+#        print('Recall: %.2f' % np.mean(recall_scores_oos))
+#        print('F1: %.2f' % np.mean(f1_scores_oos))
+#        print ("\nend of run")
         
         model_results.append({'Issue': issue, 'StartDate': modelStartDate.strftime("%Y-%m-%d"), 'EndDate': modelEndDate.strftime("%Y-%m-%d"), 'Model': modelname, 'Rows': nrows, 'beLongCount': str(np.count_nonzero(dy==1)), 'Predictors': predictor_vars, 'IS-Accuracy': np.mean(accuracy_scores_is), 'IS-Precision': np.mean(precision_scores_is), 'IS-Recall': np.mean(recall_scores_is), 'IS-F1': np.mean(f1_scores_is), 'OOS-Accuracy':  np.mean(accuracy_scores_oos), 'OOS-Precision': np.mean(precision_scores_oos), 'OOS-Recall': np.mean(recall_scores_oos), 'OOS-F1': np.mean(f1_scores_oos)})
         

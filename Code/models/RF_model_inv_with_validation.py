@@ -42,12 +42,12 @@ from sklearn.metrics import f1_score
 
 import os.path
 
-issue = "EWH"
+issue = "XLY"
 
 us_cal = CustomBusinessDay(calendar=USFederalHolidayCalendar())
 pivotDate = datetime.date(2018, 2, 2)
 inSampleOutOfSampleRatio = 2
-outOfSampleMonths = 6
+outOfSampleMonths = 8
 inSampleMonths = inSampleOutOfSampleRatio * outOfSampleMonths
 print("inSampleMonths: " + str(inSampleMonths))
 segments = 1
@@ -75,13 +75,13 @@ addIndic1 = Indicators()
 ind_list = [("RSI", 2.3),("ROC",5),("DPO",5),("ATR", 5)]
 dataSet = addIndic1.add_indicators(dataSet, ind_list)
  
-zScore_lookback = 3
+zScore_lookback = 5
 transf = Transformers()
 transfList = ['Pri_ROC','Pri_DPO','Pri_ATR']
 for i in transfList:
     dataSet = transf.zScore_transform(dataSet, zScore_lookback, i)
     
-lags = 2
+lags = 4
 transfList = ['Pri_ROC_zScore','Pri_DPO_zScore','Pri_ATR_zScore']
 for i in transfList:
     dataSet = transf.add_lag(dataSet, i, lags)
@@ -89,13 +89,14 @@ for i in transfList:
 # set lag on Close (Pri)
 transf = Transformers()
 lag_var = 'Pri'
-lags = 2
+lags = 4
 dataSet = transf.add_lag(dataSet, lag_var, lags)
 
 # add Close Higher features
 dataSet['1DayHigherClose'] = dataSet['Pri'] > dataSet['Pri_lag1']
 dataSet['2DayHigherClose'] = dataSet['Pri'] > dataSet['Pri_lag2']
-
+dataSet['3DayHigherClose'] = dataSet['Pri'] > dataSet['Pri_lag3']
+dataSet['4DayHigherClose'] = dataSet['Pri'] > dataSet['Pri_lag4']
 
 # set % return variables and lags
 dataSet["percReturn"] = dataSet["Pri"].pct_change()*100
@@ -183,7 +184,7 @@ dX = dataX.values
 # ML section
 model_results = []
 
-iterations = 100
+iterations = 10
 
 model = RandomForestClassifier(n_jobs=-1, random_state=0, min_samples_split=10, n_estimators=500, max_features = 'auto', min_samples_leaf = 10, oob_score = 'TRUE')
 modelname = 'RF'
@@ -450,10 +451,147 @@ ax1.grid(True, which='major', color='k', linestyle='-', alpha=0.6)
 ax1.grid(True, which='minor', color='r', linestyle='-', alpha=0.2)
 
 ax2 = ax1.twinx()
-ax2.plot(valData.Pri, color='black',alpha=0.6,label='CLOSE')
+ax2.plot(valData.Pri, color='black',alpha=0.6,label='CLOSE',linestyle='--')
+ax2.legend(loc='center left', frameon=True, fontsize=8)
+ax2.label_outer()
 plt.show()
 
-        
-        
+#===================================        
+# Getting sample equity curve
+
+
+
+
+#  Evaluation of signals
+
+print ("Starting single run")
+
+#  Status variables
+
+ndays = tradesData.shape[0]
+
+#  Local variables for trading system
+
+initialEquity = 100000
+fixedTradeDollars = 10000
+commission = 0.005      #  Dollars per share per trade
+
+#  These are scalar and apply to the current conditions
+
+entryPrice = 0
+exitPrice = 0
+
+#  These have an element for each day loaded
+#  Some will be unnecessary
+
+accountBalance = np.zeros(ndays)
+cash = np.zeros(ndays)
+sharesHeld = np.zeros(ndays)
+tradeGain = []
+tradeGainDollars = []
+openTradeEquity = np.zeros(ndays)
+tradeWinsValue = np.zeros(ndays)
+tradeLossesValue = np.zeros(ndays)
+
+
+iTradeDay = 0
+iTradeNumber = 0
+
+#  Day 0 contains the initial values
+accountBalance[0] = initialEquity
+cash[0] = accountBalance[0]
+sharesHeld[0] = 0
+
+#  Loop over all the days loaded
+for i in range (1,ndays):
+    #  Extract the date
+    dt = tradesData.index[i]
+    #  Check the date
+    datesPass = dt.date()>=modelStartDate and dt.date()<=modelEndDate
+    if datesPass:
+        iTradeDay = iTradeDay + 1
+        if sharesHeld[iTradeDay-1] > 0:
+            #  In a long position
+            if tradesData.valBeLong[i]<0:
+                #  target is -1 -- beFlat 
+                #  Exit -- close the trade
+                exitPrice = tradesData.Pri[i]
+                grossProceeds = sharesHeld[iTradeDay-1] * exitPrice
+                commissionAmount = sharesHeld[iTradeDay-1] * commission
+                netProceeds = grossProceeds - commissionAmount
+                #print("netProceeds: ", netProceeds)
+                cash[iTradeDay] = cash[iTradeDay-1] + netProceeds
+                accountBalance[iTradeDay] = cash[iTradeDay]
+                sharesHeld[iTradeDay] = 0
+                iTradeNumber = iTradeNumber+1
+                #tradeGain[iTradeNumber] = (exitPrice / (1.0 * entryPrice))    
+                tradeGain.append(exitPrice / (1.0 * entryPrice))
+                tradeGainDollars.append(((exitPrice / (1.0 * entryPrice))*fixedTradeDollars)-fixedTradeDollars)
+                
+                pass
+            else:
+                #  target is +1 -- beLong
+                #  Continue long
+                sharesHeld[iTradeDay] = sharesHeld[iTradeDay-1]
+                cash[iTradeDay] = cash[iTradeDay-1]
+                MTMPrice = tradesData.Pri[i]
+                openTradeEquity = sharesHeld[iTradeDay] * MTMPrice
+                accountBalance[iTradeDay] = cash[iTradeDay] + openTradeEquity
+                pass
+        else:
+            #  Currently flat
+            if tradesData.valBeLong[i]>0:
+                #  target is +1 -- beLong
+                #  Enter a new position
+                entryPrice = tradesData.Pri[i]
+                sharesHeld[iTradeDay] = int(fixedTradeDollars/(entryPrice+commission))
+                shareCost = sharesHeld[iTradeDay]*(entryPrice+commission)
+                cash[iTradeDay] = cash[iTradeDay-1] - shareCost
+                openTradeEquity = sharesHeld[iTradeDay]*entryPrice
+                accountBalance[iTradeDay] = cash[iTradeDay] + openTradeEquity
+                pass
+            else:
+                #  target is -1 -- beFlat
+                #  Continue flat
+                cash[iTradeDay] = cash[iTradeDay-1]
+                accountBalance[iTradeDay] = cash[iTradeDay] 
+                pass
+            
+#  Format and print results        
+ 
+finalAccountBalance = accountBalance[iTradeDay]
+print ('Final account balance: %.2f' %  finalAccountBalance)
+numberTradeDays = iTradeDay        
+numberTrades = iTradeNumber
+print ("Number of trades:", numberTrades)
+
+from pandas import Series
+
+Sequity = Series(accountBalance[0:numberTradeDays-1])
+
+Sequity.plot()
+
+tradeWins = sum(1 for x in tradeGain if float(x) >= 1.0)
+tradeLosses = sum(1 for x in tradeGain if float(x) < 1.0 and float(x) > 0)
+print("Wins: ", tradeWins)
+print("Losses: ", tradeLosses)
+print("W/L: ", tradeWins/numberTrades)
+
+tradeWinsValue = sum((x*fixedTradeDollars)-fixedTradeDollars for x in tradeGain if float(x) >= 1.0)
+tradeLossesValue = sum((x*fixedTradeDollars)-fixedTradeDollars for x in tradeGain if float(x) < 1.0 and float(x) > 0)
+print('Total value of Wins:  %.2f' % tradeWinsValue)
+print('Total value of Losses:  %.2f' % tradeLossesValue)
+#(Win % x Average Win Size) – (Loss % x Average Loss Size)
+print('Expectancy:  %.2f' % ((tradeWins/numberTrades)*(tradeWinsValue/tradeWins)-(tradeLosses/numberTrades)*(tradeLossesValue/tradeLosses)))
+print("Fixed trade size: ", fixedTradeDollars)
+
+# Sharpe ratio...probably not correct math
+#import math
+#print(np.mean(tradeGainDollars))
+#print(np.std(tradeGainDollars))
+#print(math.sqrt(numberTradeDays)*(np.mean(tradeGainDollars)/np.std(tradeGainDollars)))
+
+
+####  end  ####     
         
         
