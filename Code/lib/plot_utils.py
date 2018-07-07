@@ -20,7 +20,7 @@ class PlotUtility:
 
     def plot_v1(self, data, title):
         fig, ax = plt.subplots(figsize=(10,4))
-        ax.yaxis.set_major_formatter(mpl.ticker.StrMethodFormatter('{x:,.0f}'))
+        ax.yaxis.set_major_formatter(mpl.ticker.StrMethodFormatter('{x:,.2f}'))
         plt.plot(data)
         
         # Label the axes and provide a title

@@ -38,7 +38,7 @@ us_cal = CustomBusinessDay(calendar=USFederalHolidayCalendar())
 plotIt = PlotUtility()
 
 def is_oos_data_split(issue, pivotDate, isOosRatio, oosMonths, segments):
-    return_dates = []
+    return_dates = ()
     inSampleMonths = isOosRatio * oosMonths
     print("inSampleMonths: " + str(inSampleMonths))
     months_to_load = oosMonths + segments * inSampleMonths
@@ -50,10 +50,7 @@ def is_oos_data_split(issue, pivotDate, isOosRatio, oosMonths, segments):
     print("In Sample Start  Date: ", inSampleStartDate)
     print("Out of Sample Start Date: ", oosStartDate)
     print("Pivot Date: ", pivotDate)
-    return_dates.append(dataLoadStartDate)
-    return_dates.append(inSampleStartDate)
-    return_dates.append(oosStartDate)
-    return_dates.append(inSampleMonths)
+    return_dates = (dataLoadStartDate,inSampleStartDate,oosStartDate,inSampleMonths)
     return return_dates
 
 def print_beLongs(df):
@@ -65,7 +62,14 @@ def print_beLongs(df):
 def plot_beLongs(title, issue, df, start_date, end_date):
     plotTitle = title + ": " + issue + ", " + str(start_date) + " to " + str(end_date)
     plotIt.plot_v2x(df['Pri'], df['beLong'], plotTitle)
-    plotIt.histogram(df['beLong'], x_label="beLong signal", y_label="Frequency", title = "beLong distribution for " + issue)     
+    plotIt.histogram(df['beLong'], x_label="beLong signal", y_label="Frequency", title = "beLong distribution for " + issue)
+    
+def trim_dates(start_date, end_date, df):
+    df2 = pd.date_range(start=start_date, end=end_date, freq=us_cal)
+    print ("Start Date: ", start_date)
+    print ("End Date: ", end_date)
+    modelData = df.reindex(df2)
+    return modelData
 
 if __name__ == "__main__":
     issue = "tlt" 
@@ -83,7 +87,7 @@ if __name__ == "__main__":
     
     is_start_date = inSampleStartDate
     is_end_date = is_start_date + relativedelta(months=inSampleMonths)
-    oos_end_date = oosStartDate + relativedelta(months=outOfSampleMonths)
+    oos_end_date = oos_start_date + relativedelta(months=outOfSampleMonths)
     
     dSet = DataRetrieve()
     dataSet = dSet.read_issue_data(issue)   
@@ -105,49 +109,26 @@ if __name__ == "__main__":
     lags = 5    
     dataSet = transf.add_lag(dataSet, lag_var, lags)    
     
-    # Put indicators and transforms here
-    
     #set beLong level
     beLongThreshold = 0.0
     ct = ComputeTarget()
-
-    # IS only
+    dataSet = ct.setTarget(dataSet, "Long", beLongThreshold)
+    
     for i in range(segments):
-        df2 = pd.date_range(start=is_start_date, end=is_end_date, freq=us_cal)
-        print ("IS Start Date: ", is_start_date)
-        print ("IS End Date: ", is_end_date)
-
-        modelData = dataSet.reindex(df2)
-        
-        # set target var
-        mmData = ct.setTarget(modelData, "Long", beLongThreshold)
-        print_beLongs(mmData)
-        
-        mmData = mmData.drop(['Open','High','Low','Close'],axis=1)
-        
-        plot_beLongs("In Sample", issue, mmData, is_start_date, is_end_date)
-             
+        modelData = trim_dates(is_start_date, is_end_date, dataSet)
+        print ("IN SAMPLE")
+        print_beLongs(modelData)
+        plot_beLongs("In Sample", issue, modelData, is_start_date, is_end_date)
         is_start_date = is_end_date  + BDay(1)
         is_end_date = is_end_date + relativedelta(months=inSampleMonths) - BDay(1)
         
         # OOS
-        df3 = pd.date_range(start=oos_start_date, end=oos_end_date, freq=us_cal)
-        print ("OOS Start Date: ", oos_start_date)
-        print ("OOS End Date: ", oos_end_date)
-
-        modelData = dataSet.reindex(df3)
-        # set target var
-        mmData = ct.setTarget(modelData, "Long", beLongThreshold)
-        print_beLongs(mmData)
-        
-        mmData = mmData.drop(['Open','High','Low','Close'],axis=1)
-        plot_beLongs("Out of Sample", issue, mmData, oos_start_date, oos_end_date)
-
+        modelData = trim_dates(oos_start_date, oos_end_date, dataSet)
+        print ("OUT OF SAMPLE")
+        print_beLongs(modelData)
+        plot_beLongs("Out of Sample", issue, modelData, oos_start_date, oos_end_date)
         oos_start_date = oos_end_date  + BDay(1)
         oos_end_date = oos_end_date + relativedelta(months=outOfSampleMonths) - BDay(1)
-        
-        
-        
         
         
         

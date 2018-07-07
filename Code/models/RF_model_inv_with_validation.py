@@ -42,12 +42,12 @@ from sklearn.metrics import f1_score
 
 import os.path
 
-issue = "XLY"
+issue = "XLE"
 
 us_cal = CustomBusinessDay(calendar=USFederalHolidayCalendar())
 pivotDate = datetime.date(2018, 2, 2)
 inSampleOutOfSampleRatio = 2
-outOfSampleMonths = 8
+outOfSampleMonths = 12
 inSampleMonths = inSampleOutOfSampleRatio * outOfSampleMonths
 print("inSampleMonths: " + str(inSampleMonths))
 segments = 1
@@ -72,16 +72,16 @@ nrows = dataSet.shape[0]
 print ("nrows: ", nrows)
 
 addIndic1 = Indicators()
-ind_list = [("RSI", 2.3),("ROC",5),("DPO",5),("ATR", 5)]
+ind_list = [("RSI", 1.5),("ROC",2),("DPO",3),("ATR", 3)]
 dataSet = addIndic1.add_indicators(dataSet, ind_list)
  
-zScore_lookback = 5
+zScore_lookback = 3
 transf = Transformers()
 transfList = ['Pri_ROC','Pri_DPO','Pri_ATR']
 for i in transfList:
     dataSet = transf.zScore_transform(dataSet, zScore_lookback, i)
     
-lags = 4
+lags = 2
 transfList = ['Pri_ROC_zScore','Pri_DPO_zScore','Pri_ATR_zScore']
 for i in transfList:
     dataSet = transf.add_lag(dataSet, i, lags)
@@ -89,26 +89,32 @@ for i in transfList:
 # set lag on Close (Pri)
 transf = Transformers()
 lag_var = 'Pri'
-lags = 4
+lags = 6
 dataSet = transf.add_lag(dataSet, lag_var, lags)
 
+# TURN THIS INTO A FUNCTION
 # add Close Higher features
 dataSet['1DayHigherClose'] = dataSet['Pri'] > dataSet['Pri_lag1']
 dataSet['2DayHigherClose'] = dataSet['Pri'] > dataSet['Pri_lag2']
 dataSet['3DayHigherClose'] = dataSet['Pri'] > dataSet['Pri_lag3']
 dataSet['4DayHigherClose'] = dataSet['Pri'] > dataSet['Pri_lag4']
 
+dataSet['1DayLowerClose'] = dataSet['Pri'] < dataSet['Pri_lag1']
+dataSet['2DayLowerClose'] = dataSet['Pri'] < dataSet['Pri_lag2']
+dataSet['3DayLowerClose'] = dataSet['Pri'] < dataSet['Pri_lag3']
+dataSet['4DayLowerClose'] = dataSet['Pri'] < dataSet['Pri_lag4']
+
 # set % return variables and lags
 dataSet["percReturn"] = dataSet["Pri"].pct_change()*100
 lag_var = 'percReturn'
-lags = 2    
+lags = 4    
 dataSet = transf.add_lag(dataSet, lag_var, lags)    
 
 predictor_vars = 'Price and percReturn lags'
 # Put indicators and transforms here
 
 #set beLong level
-beLongThreshold = 0.0002
+beLongThreshold = 0
 ct = ComputeTarget()
 dataSet = ct.setTarget(dataSet, "Long", beLongThreshold)
 
@@ -184,9 +190,9 @@ dX = dataX.values
 # ML section
 model_results = []
 
-iterations = 10
+iterations = 100
 
-model = RandomForestClassifier(n_jobs=-1, random_state=0, min_samples_split=10, n_estimators=500, max_features = 'auto', min_samples_leaf = 10, oob_score = 'TRUE')
+model = RandomForestClassifier(n_jobs=-1, random_state=0, min_samples_split=20, n_estimators=500, max_features = 'auto', min_samples_leaf = 20, oob_score = 'TRUE')
 modelname = 'RF'
 
 #  Make 'iterations' index vectors for the train-test split
@@ -593,5 +599,11 @@ print("Fixed trade size: ", fixedTradeDollars)
 
 
 ####  end  ####     
-        
-        
+df_to_save = tradesData[['valBeLong','gainAhead']].copy()
+df_to_save.reset_index(level=df_to_save.index.names, inplace=True)
+df_to_save.columns=['Date','signal','gainAhead']
+print(df_to_save)
+
+dirext = issue + '_test1'
+filename = "oos_equity_eval_" + dirext + ".csv" 
+df_to_save.to_csv(filename, encoding='utf-8', index=False)
