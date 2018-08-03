@@ -71,10 +71,16 @@ class PlotUtility:
         #axes[1].set_yticks((-1,0,1), minor=False)
         axes[1].yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.2f')) 
         return fig, (axes[0], axes[1])
+    
+    def plot_beLongs(self, title, issue, df, start_date, end_date):
+        plotTitle = title + ": " + issue + ", " + str(start_date) + " to " + str(end_date)
+        self.plot_v2x(df['Pri'], df['beLong'], plotTitle)
+        self.histogram(df['beLong'], x_label="beLong signal", y_label="Frequency", title = "beLong distribution for " + issue)
         
     
 
 if __name__ == "__main__":
+    plotIt = PlotUtility()
     dataLoadStartDate = "2017-04-01"
     dataLoadEndDate = "2018-04-01"
     issue = "TLT"
@@ -84,17 +90,13 @@ if __name__ == "__main__":
     
     dataSet = dSet.set_date_range(dataSet, dataLoadStartDate,dataLoadEndDate)
     
-    plotIt = PlotUtility()
-    
     plotTitle = "Closing price for " + issue + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
     plotIt.plot_v1(dataSet['Pri'], plotTitle)
     
     beLongThreshold = 0
     cT = ComputeTarget()
     mmData = cT.setTarget(dataSet, "Long", beLongThreshold)
-    
-    plotIt = PlotUtility()
-    
+        
     plotTitle = "beLong signal for " + issue + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
     plotIt.plot_v1(mmData['beLong'], plotTitle)
     
@@ -103,3 +105,5 @@ if __name__ == "__main__":
     
     plotTitle = issue + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
     plotIt.plot_v2x(mmData['Pri'], mmData['beLong'], plotTitle)
+    
+    plotIt.plot_beLongs("Plot of beLongs", issue, mmData, dataLoadStartDate, dataLoadEndDate)

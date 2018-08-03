@@ -13,12 +13,13 @@ import matplotlib.pyplot as plt
 
 class Transformers:
     
-    def zScore_transform(self, df, zs_lb, ind):
+    def zScore_transform(self, df, zs_lb, ind, feature_dict):
         #loop through ind_list
-        indName = str(ind+'_zScore')
+        indName = str(ind)+'_zScore_'+str(zs_lb)
         print(indName)
         df[indName] = self.zScore(df[ind], zs_lb)
-        return df
+        feature_dict[indName] = 'Keep'
+        return df, feature_dict
 
     def zScore(self, p,lb):
         # z score statistic.
@@ -40,40 +41,41 @@ class Transformers:
             z[i] = (p[i]-ma[i])/st[i]
         return z
 
-    def add_lag(self, df, lag_var, lags):
+    def add_lag(self, df, lag_var, lags, feature_dict):
         #loop through ind_list
         indDataSet = df
         for i in range(0, lags):
             indDataSet[lag_var + "_lag" + str(i+1)] = indDataSet[lag_var].shift(i+1)
-        return indDataSet
+            feature_dict[lag_var + "_lag" + str(i+1)] = 'Keep'
+        return indDataSet, feature_dict
     
-    def softmax(self, p,lb,lam):
-        # softmax transformation.
-        # p, the series being transformed.
-        # lb, the lookback period, an integer.
-        #     the length used for the average and standard deviation.
-        #     typical values 20 to 252.  Be aware of ramp-up requirement.
-        # lam, the length of the linear section.
-        #     in standard deviations.
-        #     typical value is 6.
-        # Return is a numpy array with values in the range 0.0 to 1.0.
-        nrows = p.shape[0]
-        a = np.zeros(nrows)
-        ma = np.zeros(nrows)
-        sd = np.zeros(nrows)    
-        sm = np.zeros(nrows)
-        sq = np.zeros(nrows)
-        y = np.zeros(nrows)
-        for i in range(lb,nrows):
-            sm[i] = sm[i]+p[i]
-        ma[i] = sm[i] / lb
-        for i in range(lb,nrows):
-            sq[i] = (p[i]-ma[i])*(p[i]-ma[i])
-        sd[i] = math.sqrt(sq[i]/(nrows-1))
-        for i in range(lb,nrows):
-            a[i] = (p[i]-ma[i])/((lam*sd[i])/(2.0*math.pi))
-            y[i] = 1.0 / (1.0 + math.e**a[i])
-        return y
+#    def softmax(self, p,lb,lam):
+#        # softmax transformation.
+#        # p, the series being transformed.
+#        # lb, the lookback period, an integer.
+#        #     the length used for the average and standard deviation.
+#        #     typical values 20 to 252.  Be aware of ramp-up requirement.
+#        # lam, the length of the linear section.
+#        #     in standard deviations.
+#        #     typical value is 6.
+#        # Return is a numpy array with values in the range 0.0 to 1.0.
+#        nrows = p.shape[0]
+#        a = np.zeros(nrows)
+#        ma = np.zeros(nrows)
+#        sd = np.zeros(nrows)    
+#        sm = np.zeros(nrows)
+#        sq = np.zeros(nrows)
+#        y = np.zeros(nrows)
+#        for i in range(lb,nrows):
+#            sm[i] = sm[i]+p[i]
+#        ma[i] = sm[i] / lb
+#        for i in range(lb,nrows):
+#            sq[i] = (p[i]-ma[i])*(p[i]-ma[i])
+#        sd[i] = math.sqrt(sq[i]/(nrows-1))
+#        for i in range(lb,nrows):
+#            a[i] = (p[i]-ma[i])/((lam*sd[i])/(2.0*math.pi))
+#            y[i] = 1.0 / (1.0 + math.e**a[i])
+#        return y
     
 if __name__ == "__main__":
     from plot_utils import *
@@ -83,6 +85,7 @@ if __name__ == "__main__":
     dataLoadStartDate = "2014-04-01"
     dataLoadEndDate = "2018-04-01"
     issue = "TLT"
+    feature_dict = {}
     
     dSet = DataRetrieve()
     dataSet = dSet.read_issue_data(issue)
@@ -91,13 +94,13 @@ if __name__ == "__main__":
     
     addIndic1 = Indicators()
     ind_list = [("RSI", 2.3),("ROC",5),("DPO",5),("ATR", 5)]
-    dataSet = addIndic1.add_indicators(dataSet, ind_list)
+    dataSet, feature_dict = addIndic1.add_indicators(dataSet, ind_list, feature_dict)
  
-    zScore_lookback = 3
+    zScore_lb = 3
     transf = Transformers()
-    transfList = ['Pri_ROC','Pri_DPO','Pri_ATR']
+    transfList = ['ROC','DPO','ATR']
     for i in transfList:
-        dataSet = transf.zScore_transform(dataSet, zScore_lookback, i)
+        dataSet, feature_dict = transf.zScore_transform(dataSet, zScore_lb, i, feature_dict)
 
     # Plot price and indicators
     startDate = "2015-02-01"
@@ -108,13 +111,13 @@ if __name__ == "__main__":
     fig, axes = plt.subplots(numSubPlots,1, figsize=(10,numSubPlots*2), sharex=True)
     #fig, axes = plt.subplots(8,1, figsize=(15,8), sharex=True)
     axes[0].plot(rsiDataSet['Pri'], label=issue)
-    axes[1].plot(rsiDataSet['Pri_RSI'], label='RSI');
-    axes[2].plot(rsiDataSet['Pri_ROC'], label='ROC');
-    axes[3].plot(rsiDataSet['Pri_ROC_zScore'], label='ROC_zScore');
-    axes[4].plot(rsiDataSet['Pri_DPO'], label='DPO');
-    axes[5].plot(rsiDataSet['Pri_DPO_zScore'], label='DPO_zScore');
-    axes[6].plot(rsiDataSet['Pri_ATR'], label='ATR');
-    axes[7].plot(rsiDataSet['Pri_ATR_zScore'], label='ATR_zScore');
+    axes[1].plot(rsiDataSet['RSI'], label='RSI');
+    axes[2].plot(rsiDataSet['ROC'], label='ROC');
+    axes[3].plot(rsiDataSet['ROC_zScore_'+str(zScore_lb)], label='ROC_zScore');
+    axes[4].plot(rsiDataSet['DPO'], label='DPO');
+    axes[5].plot(rsiDataSet['DPO_zScore_'+str(zScore_lb)], label='DPO_zScore');
+    axes[6].plot(rsiDataSet['ATR'], label='ATR');
+    axes[7].plot(rsiDataSet['ATR_zScore_'+str(zScore_lb)], label='ATR_zScore');
     
     # Bring subplots close to each other.
     plt.subplots_adjust(hspace=0)
@@ -135,7 +138,7 @@ if __name__ == "__main__":
     #### testing Lag
     lag_var = 'Pri'
     lags = 5
-    dataSet = transf.add_lag(dataSet, lag_var, lags)
+    dataSet, feature_dict = transf.add_lag(dataSet, lag_var, lags, feature_dict)
     
     # Plot price and lags
     startDate = "2015-02-01"

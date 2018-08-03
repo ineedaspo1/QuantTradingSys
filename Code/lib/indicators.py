@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 
 class Indicators:
     
-    def RSI(self,p,lb):
+    def RSI(self,p,lb,feature_dict):
         # RSI technical indicator.
         # p, the series having its RSI computed.
         # lb, the lookback period, does not need to be integer.
@@ -51,9 +51,10 @@ class Indicators:
                 RSISeries[i] = 0.5
             else:
                 RSISeries[i] =  Numer[i]/Denom[i]
-        return(RSISeries)
+        feature_dict['RSI_' + str(lb)] = 'Keep'
+        return RSISeries, feature_dict
     
-    def DPO(self,p,lb):
+    def DPO(self,p,lb,feature_dict):
         # Detrended price oscillator. 
         # A high pass filter.
         # p, the series being transformed.
@@ -66,9 +67,10 @@ class Indicators:
         d = np.zeros(nrows)
         for i in range(1,nrows):
             d[i] = (p[i]-ma[i])/ma[i]
-        return(d)
+        feature_dict['DPO_' + str(lb)] = 'Keep'
+        return d, feature_dict
     
-    def ROC(self,p,lb):
+    def ROC(self,p,lb,feature_dict):
         # Rate of change technical indicator.
         # p, the series having its ROC computed.
         # lb, the lookback period.  Typically 1.
@@ -78,10 +80,11 @@ class Indicators:
         r = np.zeros(nrows)
         for i in range(lb, nrows):
             r[i] = (p[i]-p[i-lb])/p[i-lb]
-        return(r)
+        feature_dict['ROC_'+ str(lb)] = 'Keep'
+        return r, feature_dict
     
     
-    def ATR(self,ph,pl,pc,lb):
+    def ATR(self,ph,pl,pc,lb,feature_dict):
         # Average True Range technical indicator.
         # ph, pl, pc are the series high, low, and close.
         # lb, the lookback period.  An integer number of bars.
@@ -112,10 +115,11 @@ class Indicators:
             for j in range(1,lb-1):
                 trAvg[i] = trAvg[i] + tr[i-j]
             trAvg[i] = trAvg[i] / lb
-            trAvg[i] = trAvg[i] / pc[i]    
-        return(trAvg)
+            trAvg[i] = trAvg[i] / pc[i]   
+        feature_dict['ATR_'+ str(lb)] = 'Keep'
+        return trAvg, feature_dict
     
-    def add_indicators(self,df, ind_list):
+    def add_indicators(self,df, ind_list, feature_dict):
         #loop through ind_list
         indDataSet = df
         i = 0
@@ -123,22 +127,23 @@ class Indicators:
             print(i)
             sel_ind = i[0]
             if sel_ind == 'RSI':
-                indDataSet['Pri_RSI'] = self.RSI(indDataSet.Pri, i[1])
+                indDataSet['RSI'],feature_dict = self.RSI(indDataSet.Pri, i[1], feature_dict)
             elif sel_ind == 'DPO':
-                indDataSet['Pri_DPO'] = self.DPO(indDataSet.Pri, i[1])
+                indDataSet['DPO'],feature_dict = self.DPO(indDataSet.Pri, i[1], feature_dict)
             elif sel_ind == 'ROC':
-                indDataSet['Pri_ROC'] = self.ROC(indDataSet.Pri, i[1])
+                indDataSet['ROC'],feature_dict = self.ROC(indDataSet.Pri, i[1], feature_dict)
             elif sel_ind == 'ATR':
-                indDataSet['Pri_ATR'] = self.ATR(indDataSet.High, indDataSet.Low, indDataSet.Pri, i[1])
+                indDataSet['ATR'],feature_dict = self.ATR(indDataSet.High, indDataSet.Low, indDataSet.Pri, i[1], feature_dict)
             else:
                 continue
-        return indDataSet
+        return indDataSet, feature_dict
 
 if __name__ == "__main__":
     from plot_utils import *
     dataLoadStartDate = "2014-04-01"
     dataLoadEndDate = "2018-04-01"
     issue = "TLT"
+    feature_dict = {}
     
     dSet = DataRetrieve()
     dataSet = dSet.read_issue_data(issue)
@@ -156,7 +161,7 @@ if __name__ == "__main__":
     
     addIndic1 = Indicators()
     ind_list = [("RSI", 2.3),("ROC",5),("DPO",5),("ATR", 5)]
-    dataSet = addIndic1.add_indicators(dataSet, ind_list)
+    dataSet, feature_dict = addIndic1.add_indicators(dataSet, ind_list, feature_dict)
     
     startDate = "2015-02-01"
     endDate = "2015-06-30"
@@ -165,10 +170,10 @@ if __name__ == "__main__":
     fig, axes = plt.subplots(5,1, figsize=(15,8), sharex=True)
 
     axes[0].plot(rsiDataSet['Pri'], label=issue)
-    axes[1].plot(rsiDataSet['Pri_RSI'], label='RSI');
-    axes[2].plot(rsiDataSet['Pri_ROC'], label='ROC');
-    axes[3].plot(rsiDataSet['Pri_DPO'], label='DPO');
-    axes[4].plot(rsiDataSet['Pri_ATR'], label='ATR');
+    axes[1].plot(rsiDataSet['RSI'], label='RSI');
+    axes[2].plot(rsiDataSet['ROC'], label='ROC');
+    axes[3].plot(rsiDataSet['DPO'], label='DPO');
+    axes[4].plot(rsiDataSet['ATR'], label='ATR');
     
     # Bring subplots close to each other.
     plt.subplots_adjust(hspace=0)

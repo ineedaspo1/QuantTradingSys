@@ -79,11 +79,12 @@ if __name__ == "__main__":
     from plot_utils import *
     
     dataLoadStartDate = "2014-04-01"
-    dataLoadEndDate = "2018-04-01"
+    dataLoadEndDate = "2014-06-01"
     issue = "TLT"
     
     dSet = DataRetrieve()
     dataSet = dSet.read_issue_data(issue)
+    #dataSet.set_index('Date', inplace=True)
     
     dataSet = dSet.set_date_range(dataSet, dataLoadStartDate,dataLoadEndDate)
     
@@ -95,12 +96,18 @@ if __name__ == "__main__":
     print (targetDataSet.shape)
     print (targetDataSet.tail(10))
     
+    targetDataSet = dSet.drop_columns(targetDataSet,['High','Low'])
+    
+#    df_to_save = targetDataSet.copy()
+#    df_to_save.reset_index(level=df_to_save.index.names, inplace=True)
+#    df_to_save.to_csv("sample targets.csv", encoding='utf-8', index=False)
+    
     print ("beLong counts: ")
     print (targetDataSet['beLong'].value_counts())
     print ("out of ", nrows)
     
-    testFirstYear = "2015-10-01"
-    testFinalYear = "2016-01-30"
+    testFirstYear = "2014-04-01"
+    testFinalYear = "2014-06-01"
     qtPlot = targetDataSet.ix[testFirstYear:testFinalYear]
     
 #    numSubPlots = 2
