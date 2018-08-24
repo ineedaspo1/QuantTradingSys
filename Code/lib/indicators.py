@@ -6,10 +6,6 @@ Created on Wed Jun  6 15:38:00 2018
 
 indicators.py
 """
-
-from retrieve_data import *
-
-
 import numpy as np
 import pandas as pd
 import math
@@ -140,6 +136,7 @@ class Indicators:
 
 if __name__ == "__main__":
     from plot_utils import *
+    from retrieve_data import *
     dataLoadStartDate = "2014-04-01"
     dataLoadEndDate = "2018-04-01"
     issue = "TLT"

@@ -16,12 +16,8 @@ from pandas.tseries.offsets import CustomBusinessDay
 
 
 class DataRetrieve:   
-
-    def read_issue_data(self, issue):
-        self.issue = issue
-        issue_name = issue + '.pkl'
-        file_name = os.path.join(r'C:\Users\kruegkj\kevinkr OneDrive\OneDrive\IssueData\Equity', issue_name)
-        
+     
+    def read_pickle_data(self, file_name, issue):
         #######################################
         # Download data from local file
         try:
@@ -32,13 +28,29 @@ class DataRetrieve:
             print("================================")
             raise SystemExit
         print ("Successfully retrieved data series for " + issue)
-        # Copy Close
+        return df
+        
+    def read_issue_data(self, issue):
+        self.issue = issue
+        issue_name = issue + '.pkl'
+        file_name = os.path.join(r'C:\Users\kruegkj\kevinkr OneDrive\OneDrive\IssueData\Equity', issue_name)
+        
+        df = self.read_pickle_data(file_name, issue)
         df['Pri'] = df.Close
         return df
     
-    def set_date_range(self, df, dfStartDt, dfEndDt):
+    def read_fred_data(self, issue):
+        self.issue = issue
+        issue_name = issue + '.pkl'
+        file_name = os.path.join(r'C:\Users\kruegkj\kevinkr OneDrive\OneDrive\IssueData\Auxiliary', issue_name)
+        print(file_name)
+        df1 = self.read_pickle_data(file_name, issue)
+        return df1
+    
+    
+    def set_date_range(self, df, dfStartDt, dfEndDt, dateName='Date'):
         us_cal = CustomBusinessDay(calendar=USFederalHolidayCalendar())
-        df.set_index('Date', inplace=True)
+        df.set_index(pd.to_datetime(df[dateName]), inplace=True)
         df3 = df.reindex(pd.date_range(start=dfStartDt, end=dfEndDt, freq=us_cal))
         return df3
 
@@ -77,30 +89,47 @@ class ComputeTarget:
         
 if __name__ == "__main__":
     from plot_utils import *
+    plotIt = PlotUtility()
     
     dataLoadStartDate = "2014-04-01"
-    dataLoadEndDate = "2014-06-01"
+    dataLoadEndDate = "2018-06-01"
     issue = "TLT"
+    aux_issue = "VIXCLS"
+    threeMoTbill = "DTB3"
     
     dSet = DataRetrieve()
     dataSet = dSet.read_issue_data(issue)
-    #dataSet.set_index('Date', inplace=True)
+    dataSet = dSet.set_date_range(
+            dataSet, 
+            dataLoadStartDate,
+            dataLoadEndDate)
     
-    dataSet = dSet.set_date_range(dataSet, dataLoadStartDate,dataLoadEndDate)
+    vixDataSet = dSet.read_fred_data(aux_issue)
+    vixDataSet = dSet.set_date_range(
+            vixDataSet, 
+            dataLoadStartDate,
+            dataLoadEndDate,
+            dateName="DATE")
+    
+    threeMoDataSet = dSet.read_fred_data(threeMoTbill)
+    threeMoDataSet = dSet.set_date_range(
+            threeMoDataSet, 
+            dataLoadStartDate,
+            dataLoadEndDate,
+            dateName="DATE")
     
     beLongThreshold = 0.0
     ct = ComputeTarget()
-    targetDataSet = ct.setTarget(dataSet, "Long", beLongThreshold)
+    targetDataSet = ct.setTarget(
+            dataSet, 
+            "Long", 
+            beLongThreshold)
     nrows = targetDataSet.shape[0]
     print ("nrows: ", nrows)
     print (targetDataSet.shape)
     print (targetDataSet.tail(10))
     
-    targetDataSet = dSet.drop_columns(targetDataSet,['High','Low'])
-    
-#    df_to_save = targetDataSet.copy()
-#    df_to_save.reset_index(level=df_to_save.index.names, inplace=True)
-#    df_to_save.to_csv("sample targets.csv", encoding='utf-8', index=False)
+    #targetDataSet = dSet.drop_columns(targetDataSet,['High','Low'])
     
     print ("beLong counts: ")
     print (targetDataSet['beLong'].value_counts())
@@ -110,34 +139,23 @@ if __name__ == "__main__":
     testFinalYear = "2014-06-01"
     qtPlot = targetDataSet.ix[testFirstYear:testFinalYear]
     
-#    numSubPlots = 2
-#    # format the ticks
-#    fig, axes = plt.subplots(numSubPlots,1, figsize=(numSubPlots*5,8), sharex=True)
-#    
-#    axes[0].plot(qtPlot['Close'], label=issue)
-#    axes[1].plot(qtPlot['beLong'], label='beLong');
-#
-#    # Bring subplots close to each other.
-#    plt.subplots_adjust(hspace=0.1)
-#    
-#    #plt.legend((issue,'RSI','ROC','DPO','ATR'),loc='upper left')
-#    # Hide x labels and tick labels for all but bottom plot.
-#    for ax in axes:
-#        ax.label_outer()
-#        ax.legend(loc='upper left', frameon=True, fontsize=8)
-#        ax.grid(True, which='both')
-#        fig.autofmt_xdate()
-#        ax.xaxis_date()
-#        ax.autoscale_view()
-#        ax.grid(b=True, which='major', color='k', linestyle='-')
-#        ax.grid(b=True, which='minor', color='r', linestyle='-', alpha=0.2)
-#        ax.minorticks_on()
-#        ax.tick_params(axis='y',which='minor',bottom='off')
-    
-    plotIt = PlotUtility()
-    
     plotTitle = "Closing price for " + issue + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
     plotIt.plot_v1(qtPlot['Pri'], plotTitle)
     
     plotTitle = issue + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
     plotIt.plot_v2x(qtPlot['Pri'], qtPlot['beLong'], plotTitle)
+    
+    plotTitle = "VIX Closing"
+    plotIt.plot_v1(vixDataSet['VIXCLS'], plotTitle)
+    
+    plotTitle = "3 month TBill"
+    plotIt.plot_v1(threeMoDataSet['DTB3'], plotTitle)
+    
+    # Merged dataSet confirmation
+    print(dataSet.Pri.head(20))
+    print(vixDataSet.head(20))
+    merged_result = dataSet.join(vixDataSet, how='outer')
+    print(merged_result.head(20))
+    
+    plotTitle = "VIX and " + str(issue) + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
+    plotIt.plot_v2x(merged_result['Pri'], merged_result['VIXCLS'], plotTitle)

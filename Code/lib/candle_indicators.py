@@ -17,23 +17,29 @@ import matplotlib.pyplot as plt
 
 class CandleIndicators:
       
-    def HigherClose(self,p,num_days,feature_dict):
+    def HigherClose(self,dataSet,num_days,feature_dict):
         # Returns true if closing price greater than closeing price num_days previous
-        nrows = p.shape[0]
-
-        return d, feature_dict
+        column_name = str(num_days) + 'dHigherCls'
+        nrows = dataSet.shape[0]
+        pChg = np.zeros(nrows)
+        p = dataSet.Pri
+        for i in range (num_days,nrows):
+            pChg[i] = p[i] > p[i-num_days]
+        feature_dict[column_name] = 'Keep'
+        dataSet[column_name] = pChg
+        return dataSet, feature_dict
     
-    
-#    dataSet['1DayHigherClose'] = dataSet['Pri'] > dataSet['Pri_lag1']
-#    dataSet['2DayHigherClose'] = dataSet['Pri'] > dataSet['Pri_lag2']
-#    dataSet['3DayHigherClose'] = dataSet['Pri'] > dataSet['Pri_lag3']
-#    dataSet['4DayHigherClose'] = dataSet['Pri'] > dataSet['Pri_lag4']
-#    
-#    dataSet['1DayLowerClose'] = dataSet['Pri'] < dataSet['Pri_lag1']
-#    dataSet['2DayLowerClose'] = dataSet['Pri'] < dataSet['Pri_lag2']
-#    dataSet['3DayLowerClose'] = dataSet['Pri'] < dataSet['Pri_lag3']
-#    dataSet['4DayLowerClose'] = dataSet['Pri'] < dataSet['Pri_lag4']
-    
+    def LowerClose(self,dataSet,num_days,feature_dict):
+        # Returns true if closing price greater than closeing price num_days previous
+        column_name = str(num_days) + 'dLowerCls'
+        nrows = dataSet.shape[0]
+        pChg = np.zeros(nrows)
+        p = dataSet.Pri
+        for i in range (num_days,nrows):
+            pChg[i] = p[i] < p[i-num_days]
+        feature_dict[column_name] = 'Keep'
+        dataSet[column_name] = pChg
+        return dataSet, feature_dict      
     
 if __name__ == "__main__":
     from plot_utils import *
@@ -42,46 +48,63 @@ if __name__ == "__main__":
     issue = "TLT"
     feature_dict = {}
     
+    candle_ind = CandleIndicators()
+    plotIt = PlotUtility()
     dSet = DataRetrieve()
     dataSet = dSet.read_issue_data(issue)
-    
     dataSet = dSet.set_date_range(dataSet, dataLoadStartDate,dataLoadEndDate)
     
-    plotIt = PlotUtility()
+    days_to_plot = 4
+    for i in range(1,days_to_plot+1):
+        num_days = i
+        dataSet, feature_dict = candle_ind.HigherClose(dataSet,num_days,feature_dict)
+        dataSet, feature_dict = candle_ind.LowerClose(dataSet,num_days,feature_dict)
     
-#    plotTitle = "Closing price for " + issue + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
-#    plotIt.plot_v1(dataSet['Pri'], plotTitle)
-    dataSet.CloseHigher=[]
-    num_days = 3
-    nrows = dataSet.shape[0]
-    print(nrows)
+    startDate = "2015-02-01"
+    endDate = "2015-04-30"
+    rsiDataSet = dataSet.ix[startDate:endDate]
+    #fig = plt.figure(figsize=(15,8  ))
+    fig, axes = plt.subplots(days_to_plot+1,1, figsize=(15,8), sharex=True)
+
+    axes[0].plot(rsiDataSet['Pri'], label=issue)
+    for i in range(1,days_to_plot+1):
+        axes[i].plot(rsiDataSet[str(i) + 'dHigherCls'], label=str(i) + 'dHigherCls');
+
     
-    for i in range (num_days+1,nrows):
-        dataSet.CloseHigher[i] = dataSet.Pri[i] > dataSet.Pri[i-num_days]    
+    # Bring subplots close to each other.
+    plt.subplots_adjust(hspace=0)
+    #plt.legend((issue,'RSI','ROC','DPO','ATR'),loc='upper left')
+    # Hide x labels and tick labels for all but bottom plot.
+    for ax in axes:
+        ax.label_outer()
+        ax.legend(loc='upper left', frameon=True, fontsize=8)
+        ax.grid(True, which='both')
+        fig.autofmt_xdate()
+        ax.xaxis_date()
+        ax.autoscale_view()
+        ax.grid(b=True, which='major', color='k', linestyle='-')
+        ax.grid(b=True, which='minor', color='r', linestyle='-', alpha=0.2)
+        ax.minorticks_on()
+        ax.tick_params(axis='y',which='minor',bottom='off')
     
-#    beLongThreshold = 0
-#    cT = ComputeTarget()
-#    mmData = cT.setTarget(dataSet, "Long", beLongThreshold)
-#    
-#    
-#    startDate = "2015-02-01"
-#    endDate = "2015-06-30"
-#    rsiDataSet = dataSet.ix[startDate:endDate]
-#    #fig = plt.figure(figsize=(15,8  ))
-#    fig, axes = plt.subplots(5,1, figsize=(15,8), sharex=True)
-#
-#    axes[0].plot(rsiDataSet['Pri'], label=issue)
-#    axes[1].plot(rsiDataSet['RSI'], label='RSI');
-#    axes[2].plot(rsiDataSet['ROC'], label='ROC');
-#    axes[3].plot(rsiDataSet['DPO'], label='DPO');
-#    axes[4].plot(rsiDataSet['ATR'], label='ATR');
-#    
-#    # Bring subplots close to each other.
-#    plt.subplots_adjust(hspace=0)
-#    #plt.legend((issue,'RSI','ROC','DPO','ATR'),loc='upper left')
-#    # Hide x labels and tick labels for all but bottom plot.
-#    for ax in axes:
-#        ax.label_outer()
-#        ax.legend(loc='upper left', frameon=False)
-#    
+    
+    fig, axes = plt.subplots(days_to_plot+1,1, figsize=(15,8), sharex=True)
+    axes[0].plot(rsiDataSet['Pri'], label=issue)
+    for i in range(1,days_to_plot+1):
+        axes[i].plot(rsiDataSet[str(i) + 'dLowerCls'], label=str(i) + 'dLowerCls');
+    # Bring subplots close to each other.
+    plt.subplots_adjust(hspace=0)
+    #plt.legend((issue,'RSI','ROC','DPO','ATR'),loc='upper left')
+    # Hide x labels and tick labels for all but bottom plot.
+    for ax in axes:
+        ax.label_outer()
+        ax.legend(loc='upper left', frameon=True, fontsize=8)
+        ax.grid(True, which='both')
+        fig.autofmt_xdate()
+        ax.xaxis_date()
+        ax.autoscale_view()
+        ax.grid(b=True, which='major', color='k', linestyle='-')
+        ax.grid(b=True, which='minor', color='r', linestyle='-', alpha=0.2)
+        ax.minorticks_on()
+        ax.tick_params(axis='y',which='minor',bottom='off')
     
