@@ -1,129 +1,184 @@
 # -*- coding: utf-8 -*-
 """
 Created on Wed Jun  6 15:38:00 2018
-
 @author: KRUEGKJ
-
 ta_momentum_studies.py
 """
-
-import sys
-#sys.path.append('../lib')
-#sys.path.append('../utilities')
-
-from plot_utils import *
-from retrieve_data import *
-
 import talib as ta
-import numpy as np
-import pandas as pd
-import math
-import matplotlib.pyplot as plt
 
 class TALibMomentumStudies:
-    
+    """Group of Momentum studies utilized fromTALib """
     def RSI(self, close, period, feature_dict):
-        feature_dict['RSI_'+str(period)]='Keep'
-        relSI = ta.RSI(
-            close,
-            # default is 30
-            period)
+        """Relative Strenth Index, suppose Welles Wilder verison
+           Args:
+                close: Closing price of instrument
+                period: number of time periods in the calculation
+                feature_dict: Dictionary of added features
+           Return:
+                RSI signal
+                feature_dict
+        """
+        feature_dict['RSI_' + str(period)] = 'Keep'
+        relSI = ta.RSI(close, period)
         return relSI, feature_dict
 
-    def PPO(self, close, fastperiod, slowperiod, feature_dict):
-        feature_dict['PPO_f'+str(fastperiod)+'_s'+str(slowperiod)]='Keep'
-        pricePercOsc = ta.PPO(
-            close,
-            # defaults are 0
-            # The FastLimit and SlowLimit parameters should be between 0.01 and 0.99
-            fastperiod,
-            slowperiod)
+    def PPO(self, close, fast, slow, feature_dict):
+        """ Percentage Price Oscillator
+                Difference between two moving averages of a security's price
+            Args:
+                close: Closing price of instrument
+                fast: fast MA
+                slow: slowMA
+                feature_dict: Dictionary of added features
+            Return:
+                PPO signal
+                feature_dict
+        """
+        feature_dict['PPO_f' + str(fast) + '_s' + str(slow)] = 'Keep'
+        pricePercOsc = ta.PPO(close,
+                              # defaults are 0
+                              # The FastLimit and SlowLimit parameters
+                              # should be between 0.01 and 0.99
+                              fast,
+                              slow
+                              )
         return pricePercOsc, feature_dict
-    
+
     def CMO(self, close, period, feature_dict):
-        feature_dict['CMO_'+str(period)]='Keep'
-        chandeMO = ta.CMO(
-            close,
-            # default is 30
-            period)
+        """ Chande Momentum Oscillator
+                Modified RSI, measures momentum on both up and down days
+            Args:
+                close: Closing price of instrument
+                period: number of time periods in the calculation
+                feature_dict: Dictionary of added features
+            Return:
+                CMO signal
+                feature_dict
+        """
+        feature_dict['CMO_' + str(period)] = 'Keep'
+        chandeMO = ta.CMO(close, period)
         return chandeMO, feature_dict
-    
-    def CCI(self, high, low, close, feature_dict):
-        feature_dict['CCI']='Keep'
-        commChanIndex = ta.CCI(
-            high,
-            low,
-            close)
+
+    def CCI(self, high, low, close, period, feature_dict):
+        """ Commodity Channel Index
+            CCI measures the current price level relative to an average price
+            level over a given period of time. CCI is relatively high
+            when prices are far above their average. CCI is relatively
+            low when prices are far below their average. In this manner,
+            CCI can be used to identify overbought and oversold levels.
+
+            Args:
+                high, low, close: HLC of instrument
+                period: number of time periods in the calculation
+                feature_dict: Dictionary of added features
+            Return:
+                CCI signal
+                feature_dict
+        """
+        feature_dict['CCI_' + str(period)] = 'Keep'
+        commChanIndex = ta.CCI(high,
+                               low,
+                               close,
+                               period
+                               )
         return commChanIndex, feature_dict
-    
+
     def UltOsc(self, high, low, close, t1, t2, t3, feature_dict):
-        feature_dict['UltOsc_t1'+str(t1)+'_t2'+str(t2)+'_t3'+str(t3)]='Keep'
-        ultOsc = ta.ULTOSC(
-            high,
-            low,
-            close,
-            t1,
-            t2,
-            t3)
+        """ Ultimate Oscillator
+            Uses weighted sums of three oscillators, designed to capture
+            momentum across three different timeframes, each of which uses
+            a different time period
+
+            Args:
+                high, low, close: HLC of instrument
+                t1, t2, t3: various time periods in the calculation,
+                            default: 7,14,28
+                feature_dict: Dictionary of added features
+            Return:
+                UO signal
+                feature_dict
+        """
+        t1t = 'UltOsc_t1' + str(t1)
+        t2t = '_t2' + str(t2)
+        t3t = '_t3' + str(t3)
+        feature_dict[t1t + t2t + t3t] = 'Keep'
+        ultOsc = ta.ULTOSC(high, low, close,
+                           t1, t2, t3
+                           )
         return ultOsc, feature_dict
-    
+
+    def rate_OfChg(self, close, period, feature_dict):
+        """The Rate of Change (ROC) is a technical indicator that
+        measures the percentage change between the most recent price
+        and the price “n” day’s ago. The indicator fluctuates around
+        the zero line.
+        Args:
+                close: close of instrument
+                feature_dict: Dictionary of added features
+            Return:
+                UO signal
+                feature_dict
+        """
+        feature_dict['ROC_' + str(period)] = 'Keep'
+        ROC = ta.ROC(close, period)
+        return ROC, feature_dict
+
 if __name__ == "__main__":
+    from plot_utils import *
+    from retrieve_data import *
+    
+    plotIt = PlotUtility()
+    taLibMomSt = TALibMomentumStudies()
+    dSet = DataRetrieve()
+    
     dataLoadStartDate = "2014-04-01"
     dataLoadEndDate = "2018-04-01"
     issue = "TLT"
     feature_dict = {}
-    
-    taLibMomSt = TALibMomentumStudies()
-        
-    dSet = DataRetrieve()
+
     dataSet = dSet.read_issue_data(issue)
-        
-    dataSet = dSet.set_date_range(dataSet, dataLoadStartDate,dataLoadEndDate)
-    
-    dataSet['RSI_20'], feature_dict = taLibMomSt.RSI(dataSet.Pri.values, 20, feature_dict)
-    dataSet['PPO'], feature_dict = taLibMomSt.PPO(dataSet.Pri.values, 10, 24, feature_dict)
-    dataSet['CMO_20'], feature_dict = taLibMomSt.CMO(dataSet.Pri.values, 20, feature_dict)
-    dataSet['CCI'], feature_dict = taLibMomSt.CCI(dataSet.High.values, dataSet.Low.values, dataSet.Pri.values, feature_dict)
-    dataSet['ULTOSC'], feature_dict = taLibMomSt.UltOsc(dataSet.High.values, dataSet.Low.values, dataSet.Pri.values, 7, 24, 28, feature_dict)
-    
+
+    dataSet = dSet.set_date_range(dataSet, dataLoadStartDate, dataLoadEndDate)
+
+    dataSet['RSI_20'], feature_dict = taLibMomSt.RSI(dataSet.Pri.values,
+                                                     20,
+                                                     feature_dict
+                                                     )
+    dataSet['PPO'], feature_dict = taLibMomSt.PPO(dataSet.Pri.values,
+                                                  10,
+                                                  24,
+                                                  feature_dict
+                                                  )
+    dataSet['CMO_20'], feature_dict = taLibMomSt.CMO(dataSet.Pri.values,
+                                                     20,
+                                                     feature_dict
+                                                     )
+    dataSet['CCI_20'], feature_dict = taLibMomSt.CCI(dataSet.High.values,
+                                                     dataSet.Low.values,
+                                                     dataSet.Pri.values,
+                                                     20,
+                                                     feature_dict
+                                                     )
+    dataSet['ULTOSC'], feature_dict = taLibMomSt.UltOsc(dataSet.High.values,
+                                                        dataSet.Low.values,
+                                                        dataSet.Pri.values,
+                                                        7,
+                                                        24,
+                                                        28,
+                                                        feature_dict
+                                                        )
+    dataSet['ROC'], feature_dict = taLibMomSt.rate_OfChg(dataSet.Pri.values,
+                                                         10,
+                                                         feature_dict
+                                                         )
+
     startDate = "2015-02-01"
     endDate = "2015-06-30"
-    rsiDataSet = dataSet.ix[startDate:endDate]
-    plt.figure(figsize=(20,20))
-    horizplots = 8
-    top = plt.subplot2grid((horizplots,4), (0, 0), rowspan=1, colspan=4)
-    top2 = plt.subplot2grid((horizplots,4), (1, 0), rowspan=1, colspan=4)
-    top3 = plt.subplot2grid((horizplots,4), (2, 0), rowspan=1, colspan=4)
-    top4 = plt.subplot2grid((horizplots,4), (3, 0), rowspan=1, colspan=4)
-    top5 = plt.subplot2grid((horizplots,4), (4, 0), rowspan=1, colspan=4)
-    middle = plt.subplot2grid((horizplots,4), (5, 0), rowspan=2, colspan=4)
-    bottom = plt.subplot2grid((horizplots,4), (7, 0), rowspan=1, colspan=4)
-    #top.plot(rsiDataSet.index, rsiDataSet['Pri']) #
-    #bottom.bar(rsiDataSet.index, rsiDataSet['Volume'])
-    top.plot(rsiDataSet.index, rsiDataSet['RSI_20'], 'g-')
-    top2.plot(rsiDataSet.index, rsiDataSet['PPO'], 'r-')
-    top3.plot(rsiDataSet.index, rsiDataSet['CMO_20'], 'b-')
-    top4.plot(rsiDataSet.index, rsiDataSet['CCI'], 'b-')
-    top5.plot(rsiDataSet.index, rsiDataSet['ULTOSC'], '-')
-    middle.plot(rsiDataSet.index, rsiDataSet['Pri'], 'k-', markersize=3,label=issue)
-    bottom.bar(rsiDataSet.index, rsiDataSet['Volume'], label='Volume');
-    plt.subplots_adjust(hspace=0.05)
-    # set the labels
-    top.axes.get_xaxis().set_visible(True)
-    top.set_title('TLT')
-    middle.set_ylabel('Closing Price')
-    bottom.set_ylabel('Volume')
+    plotDF = dataSet[startDate:endDate]
     
-    top.axhline(y=30, color='red', linestyle='-', alpha=0.4)
-    top.axhline(y=70, color='blue', linestyle='-', alpha=0.4)
-    
-    for ax in top, top2, top3, top4, top5, middle, bottom:
-                    ax.label_outer()
-                    ax.legend(loc='upper left', frameon=True, fontsize=8)
-                    ax.yaxis.set_major_formatter(mpl.ticker.StrMethodFormatter('{x:,.0f}'))
-                    ax.grid(True, which='both')
-                    ax.xaxis_date()
-                    ax.autoscale_view()
-                    ax.grid(b=True, which='major', color='k', linestyle='-', alpha=0.6)
-                    ax.grid(b=True, which='minor', color='r', linestyle='-', alpha=0.2)
-                    ax.minorticks_on()
+    # Set up dictionary and plot HigherClose
+    plot_dict = {}
+    plot_dict['Issue'] = issue
+    plot_dict['Plot_Vars'] = ['RSI_20', 'PPO', 'CMO_20', 'CCI_20', 'ULTOSC', 'ROC']
+    plot_dict['Volume'] = 'Yes'
+    plotIt.price_Ind_Vol_Plot(plot_dict, plotDF)

@@ -1,25 +1,46 @@
 # -*- coding: utf-8 -*-
 """
 Created on Wed May 23 16:17:54 2018
-
 @author: kruegkj
-
 retrieve_data.py
 """
-
-
 import pandas as pd
 import numpy as np
 import os
 from pandas.tseries.holiday import USFederalHolidayCalendar
 from pandas.tseries.offsets import CustomBusinessDay
+#import pandas_market_calendars as mcal
 
+import datetime as dt
+
+from pandas.tseries.holiday import AbstractHolidayCalendar, Holiday, nearest_workday, \
+    USMartinLutherKingJr, USPresidentsDay, GoodFriday, USMemorialDay, \
+    USLaborDay, USThanksgivingDay
+
+
+class USTradingCalendar(AbstractHolidayCalendar):
+    rules = [
+        Holiday('NewYearsDay', month=1, day=1, observance=nearest_workday),
+        USMartinLutherKingJr,
+        USPresidentsDay,
+        GoodFriday,
+        USMemorialDay,
+        Holiday('USIndependenceDay', month=7, day=4, observance=nearest_workday),
+        USLaborDay,
+        USThanksgivingDay,
+        Holiday('Christmas', month=12, day=25, observance=nearest_workday)
+    ]
 
 class DataRetrieve:   
-     
+    """Class of functions used to retrieve issue data"""
     def read_pickle_data(self, file_name, issue):
-        #######################################
-        # Download data from local file
+        """Reads data from a pickle file   
+           Args:
+                file_name: filename of pickle file
+                issue: symbol of data to be retrieved
+           Return:
+                df: Dataframe of issue data
+        """
         try:
             df = pd.read_pickle(file_name)
         except:
@@ -31,46 +52,89 @@ class DataRetrieve:
         return df
         
     def read_issue_data(self, issue):
+        """Reads equity from a pickle file   
+           Args:
+                issue: symbol of data to be retrieved
+           Return:
+                df: Dataframe of issue data
+           To update: Set location of filename location outside of class
+        """
         self.issue = issue
         issue_name = issue + '.pkl'
         file_name = os.path.join(r'C:\Users\kruegkj\kevinkr OneDrive\OneDrive\IssueData\Equity', issue_name)
-        
         df = self.read_pickle_data(file_name, issue)
         df['Pri'] = df.Close
         return df
     
     def read_fred_data(self, issue):
+        """Reads FRED data from a pickle file   
+           Args:
+                issue: symbol of data to be retrieved
+           Return:
+                df: Dataframe of issue data
+           To update: Set location of filename location outside of class
+        """
         self.issue = issue
         issue_name = issue + '.pkl'
         file_name = os.path.join(r'C:\Users\kruegkj\kevinkr OneDrive\OneDrive\IssueData\Auxiliary', issue_name)
         print(file_name)
-        df1 = self.read_pickle_data(file_name, issue)
-        return df1
-    
-    
+        df = self.read_pickle_data(file_name, issue)
+        return df
+        
     def set_date_range(self, df, dfStartDt, dfEndDt, dateName='Date'):
-        us_cal = CustomBusinessDay(calendar=USFederalHolidayCalendar())
+        """Set US bus cal date range to be retrieved from datetimeindex   
+           Args:
+                df: dataframe of issue data
+                dfStartDt: start date
+                dfEndDt: end date
+                dateName: name of Date column, default is 'Name'
+           Return:
+                df3: Dataframe of issue data
+           To update: Set location of filename location outside of class
+        """
+        us_cal = CustomBusinessDay(calendar=USTradingCalendar())
         df.set_index(pd.to_datetime(df[dateName]), inplace=True)
         df3 = df.reindex(pd.date_range(start=dfStartDt, end=dfEndDt, freq=us_cal))
         return df3
 
     def drop_columns(self, df, col_vals):
+        """Utility to drop columns   
+           Args:
+                df: dataframe of issue data
+                col_vals: list of column names
+           Return:
+                df: Dataframe with columns dropped
+           To update: Verify columns exist before dropping
+        """
         df.drop(col_vals, axis =1, inplace=True)
         return df
     
 class ComputeTarget:
     
-    def setTarget(self, p, direction, beLongThreshold):
-        p['gainAhead'] = ComputeTarget.gainAhead(p.Pri)
-        p['beLong'] = np.where(p.gainAhead>beLongThreshold,1,-1)
-        return p
+    def setTarget(self, df, direction, beLongThreshold):
+        """Set value of target to 1 if gainAhead>0, otherwise set to 0   
+           Args:
+                df: dataframe of issue data
+                direction: long or short (currently unused, assume long)
+                beLongThreshold: gain must be above this threshold to 
+                    set direction
+           Return:
+                df: Dataframe with gainAhead and beLong columns added
+           To update: Added direction and correct code to identify
+               long and short thresholds and correct signal
+        """
+        df['gainAhead'] = ComputeTarget.gainAhead(df.Pri)
+        df['beLong'] = np.where(df.gainAhead>beLongThreshold,1,-1)
+        return df
 
     def gainAhead(p):
-        # Computes change in the next 1 bar.
-        # p, the base series.
-        # Return is a numpy array of changes.
-        # A change of 1% is 0.01
-        # The final value is unknown.  Its value is 0.0.
+        """Computes change in the next 1 bar. A change of 1% is 0.01.
+           The final value is unknown.  Its value is 0.0. 
+           Args:
+                p: price series
+           Return:
+                g: numpy array of changes
+        """
         nrows = p.shape[0]
         g = np.zeros(nrows)
         for i in range(0,nrows-1):
@@ -81,6 +145,13 @@ class ComputeTarget:
         return g
         
     def priceChange(self, p):
+        """Computes pricechange in the next 1 bar. 
+           The final value is unknown.  Its value is 0.0. 
+           Args:
+                p: price series
+           Return:
+                pc: numpy array of changes
+        """
         nrows = p.shape[0]
         pc = np.zeros(nrows)
         for i in range(1,nrows):

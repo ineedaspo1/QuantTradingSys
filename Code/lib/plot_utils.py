@@ -1,20 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu May 31 18:34:16 2018
-
 @author: kruegkj
-
 plot_utils.py
 """
 from  retrieve_data import *
-##from retrieve_data import DataRetrieve
-#from retrieve_data import ComputeTarget
-##import retrieve_data
-
 import matplotlib.pylab as plt
 import matplotlib as mpl
-plt.style.use('seaborn-ticks')
 import matplotlib.ticker as ticker
+import numpy as np
 
 class PlotUtility:
 
@@ -77,33 +71,104 @@ class PlotUtility:
         self.plot_v2x(df['Pri'], df['beLong'], plotTitle)
         self.histogram(df['beLong'], x_label="beLong signal", y_label="Frequency", title = "beLong distribution for " + issue)
         
+    def price_Ind_Vol_Plot(self, plot_dict, df):
+        # Subplots are organized in a Rows x Cols Grid
+        issue = plot_dict['Issue']
+        key_to_value_lengths = {k:len(v) for k, v in plot_dict.items()}
+        #print(key_to_value_lengths)
+        #key_to_value_lengths['Plot_Vars']
+        subplot_len = key_to_value_lengths['Plot_Vars']
+        #print(subplot_len)
+        if plot_dict['Volume']=='Yes':
+            total_rows = 2 + subplot_len
+        else:
+            total_rows = 1 + subplot_len
     
+        Cols = 1
+        
+        N = len(df)
+        ind = np.arange(N)  # the evenly spaced plot indices
+    
+        def format_date(x, pos=None):
+            thisind = np.clip(int(x + 0.5), 0, N - 1)
+            return df.Date[thisind].strftime('%Y-%m-%d')
+        
+        fig = plt.figure(1,figsize=(14,total_rows*2))
+        plt.subplots_adjust(hspace=0.05)
+        
+        cnt = 0
+        for n in range(1,total_rows+1):
+            if n==1:
+                ax = fig.add_subplot(total_rows,Cols,1)
+                ax.plot(ind, df['Pri'], label=issue)
+            elif n < subplot_len+2:
+                ax = fig.add_subplot(total_rows,Cols,n,sharex=ax)
+                ax.plot(ind, df[plot_dict['Plot_Vars'][cnt]], label=plot_dict['Plot_Vars'][cnt])
+                cnt += 1
+            else: # add Volume plot if requested
+                ax = fig.add_subplot(total_rows,Cols,n)
+                ax.bar(ind, df['Volume'], label='Volume')
+            
+            ax.grid(b=True, which='major', color='k', linestyle='-')
+            ax.grid(b=True, which='minor', color='r', linestyle='-', alpha=0.2)
+            ax.label_outer()
+            ax.legend(loc='upper left', frameon=True, fontsize=10)
+            ax.minorticks_on()
+            ax.yaxis.set_major_formatter(mpl.ticker.StrMethodFormatter('{x:,.0f}'))
+            ax.xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
+        plt.show()
+        
 
 if __name__ == "__main__":
     plotIt = PlotUtility()
-    dataLoadStartDate = "2017-04-01"
+    dataLoadStartDate = "2014-04-01"
     dataLoadEndDate = "2018-04-01"
     issue = "TLT"
     
     dSet = DataRetrieve()
     dataSet = dSet.read_issue_data(issue)
-    
     dataSet = dSet.set_date_range(dataSet, dataLoadStartDate,dataLoadEndDate)
-    
-    plotTitle = "Closing price for " + issue + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
-    plotIt.plot_v1(dataSet['Pri'], plotTitle)
     
     beLongThreshold = 0
     cT = ComputeTarget()
-    mmData = cT.setTarget(dataSet, "Long", beLongThreshold)
+    dataSet = cT.setTarget(dataSet, 
+                           "Long", 
+                           beLongThreshold
+                           )
+    
+    # Plot price and indicators
+    startDate = "2015-02-01"
+    endDate = "2015-06-30"
+
+    plotDataSet = dataSet[startDate:endDate]
+
+    # Set up plot dictionary
+    plot_dict = {}
+    plot_dict['Issue'] = dataSet.Symbol[0]
+    plot_dict['Plot_Vars'] = ['beLong']
+    plot_dict['Volume'] = 'Yes'
+    
+    plotIt.price_Ind_Vol_Plot(plot_dict, plotDataSet)
+    
+    plotTitle = "Closing price for " + issue + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
+    plotIt.plot_v1(plotDataSet['Pri'], plotTitle)
+
         
     plotTitle = "beLong signal for " + issue + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
-    plotIt.plot_v1(mmData['beLong'], plotTitle)
+    plotIt.plot_v1(
+            plotDataSet['beLong'], 
+            plotTitle)
     
-    plotIt.histogram(mmData['beLong'], x_label="beLong signal", y_label="Frequency", 
-          title = "beLong distribution for " + issue)
+    plotIt.histogram(
+            plotDataSet['beLong'], 
+            x_label="beLong signal", 
+            y_label="Frequency", 
+            title = "beLong distribution for " + issue)
     
     plotTitle = issue + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
-    plotIt.plot_v2x(mmData['Pri'], mmData['beLong'], plotTitle)
+    plotIt.plot_v2x(
+            plotDataSet['Pri'], 
+            plotDataSet['beLong'], 
+            plotTitle)
     
-    plotIt.plot_beLongs("Plot of beLongs", issue, mmData, dataLoadStartDate, dataLoadEndDate)
+    plotIt.plot_beLongs("Plot of beLongs", issue, plotDataSet, dataLoadStartDate, dataLoadEndDate)
