@@ -6,45 +6,13 @@ transformers.py
 """
 import numpy as np
 import pandas as pd
-import math
-import matplotlib.pyplot as plt
 from sklearn.preprocessing import RobustScaler
 from scipy.stats import norm
-
-from oscillator_studies import *
-from ta_volume_studies import *
-from ta_momentum_studies import *
-from ta_volatility_studies import *
-
-
+from config import *
 
 class Transformers:
     """Various signal transformation functions"""
-
-    def zScore_transform(self, df, zs_lb, ind, feature_dict):
-        """Handles zScore functions by creating indicator name and
-            sending request to zScore function. Z-score statistic
-            centered on 0.0.
-
-            Args:
-                df: Dataframe containing indicator
-                zs_lb: Lookback period(int)
-                ind: Indicator name to be transformed
-                feature_dict: Dictionary of added features
-            Return:
-                Dataframe comtaining new column with transformed signal
-                feature_dict: Append entry with colname
-            Usage:
-                dataSet, feature_dict = transf.zScore_transform(dataSet,
-                lb, indName, feature_dict)
-        """
-        #loop through ind_list
-        indName = str(ind)+'_zScore_'+str(zs_lb)
-        df[indName] = self.zScore(df[ind], zs_lb)
-        feature_dict[indName] = 'Keep'
-        return df, feature_dict
-
-    def zScore(self, p, lb):
+    def zScore(self, df, ind, lb):
         """Used by zScore_transform for zScore calculation
             Args:
                 p: the series having its z-score computed.
@@ -54,18 +22,24 @@ class Transformers:
             Return:
                 Return is a numpy array with values as z-scores
         """
-        nrows = p.shape[0]
+        col_name = str(ind) + '_zScore_' + str(lb)
+        current_feature['Latest'] = col_name
+        feature_dict[col_name] = 'Keep'
+        
+        nrows = df.shape[0]
         st = np.zeros(nrows)
         ma = np.zeros(nrows)
+        p = df[ind]
         # use the pandas sliding window functions.
         st = p.rolling(window=lb, center=False).std()
         ma = p.rolling(window=lb, center=False).mean()
         z = np.zeros(nrows)
         for i in range(lb, nrows):
             z[i] = (p[i] - ma[i]) / st[i]
-        return z
+        df[col_name] = z
+        return df
 
-    def add_lag(self, df, lag_var, lags, feature_dict):
+    def add_lag(self, df, lag_var, lags):
         """Add lag to any time-based series
 
             Args:
@@ -86,9 +60,9 @@ class Transformers:
         for i in range(0, lags):
             df[lag_var + "_lag" + str(i+1)] = df[lag_var].shift(i+1)
             feature_dict[lag_var + "_lag" + str(i+1)] = 'Keep'
-        return df, feature_dict
+        return df
 
-    def centering(self, df, col, feature_dict, lb=14, type='median'):
+    def centering(self, df, col, lb=14, type='median'):
         """Subtract a historical median from signal
 
             Args:
@@ -109,13 +83,14 @@ class Transformers:
         """
         col_name = str(col) + '_Centered'
         feature_dict[col_name] = 'Keep'
+        current_feature['Latest'] = col_name
         df[col_name] = df[col]
         if type == 'median':
             rm = df[col].rolling(window=lb, center=False).median()
             df[col_name] = df[col] - rm
-        return df, feature_dict
+        return df
 
-    def scaler(self, df, col, type, feature_dict):
+    def scaler(self, df, col, type):
         """Scale - Use when sign and magnitude is of
                     paramount importance.
                     Scale accoring to historical volatility
@@ -133,14 +108,18 @@ class Transformers:
         """
         col_name = str(col) + '_Scaled'
         feature_dict[col_name] = 'Keep'
+        current_feature['Latest'] = col_name
+        
+        df = self.clean_dataset(df)
+        
         df[col_name] = df[col]
         # current only coded to use RobustScaler
         scaler = RobustScaler(quantile_range=(25, 75))
         df[[col_name]] = scaler.fit_transform(df[[col_name]])
-        return df, feature_dict
+        return df
 
-    def normalizer(self, dataSet, colname, n, 
-                   feature_dict, mode = 'scale', linear = False):
+    def normalizer(self, dataSet, colname, n,
+                   mode = 'scale', linear = False):
         """
              It computes the normalized value on the stats of n values
              ( Modes: total or scale ) using the formulas from the book
@@ -166,6 +145,10 @@ class Transformers:
         temp =[]
         new_colname = str(colname) + '_Normalized'
         feature_dict[new_colname] = 'Keep'
+        current_feature['Latest'] = new_colname
+        
+        dataSet = self.clean_dataset(dataSet)
+        
         df = dataSet[colname]
         for i in range(len(df))[::-1]:
             if i  >= n:
@@ -187,126 +170,113 @@ class Transformers:
                 v = norm.cdf(50*(df.iloc[i]-F50)/(F75-F25))-50
             temp.append(v)
         dataSet[new_colname] = temp[::-1]
-        return  dataSet, feature_dict
+        return  dataSet
+    
+    def clean_dataset(self, df):
+        assert isinstance(df, pd.DataFrame), "df needs to be a pd.DataFrame"
+        df.dropna(inplace=True)
+        indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
+        return df
 
 if __name__ == "__main__":
+    current_feature = {}
     from plot_utils import *
     from retrieve_data import *
-    from indicators import *
+    from config import *
+
+    from oscillator_studies import *
     from ta_volume_studies import *
+    from ta_momentum_studies import *
+    from ta_volatility_studies import *
 
     dataLoadStartDate = "2014-04-01"
     dataLoadEndDate = "2018-04-01"
     issue = "TLT"
-    feature_dict = {}
-
+    
     taLibVolSt = TALibVolumeStudies()
     plotIt = PlotUtility()
 
     dSet = DataRetrieve()
     dataSet = dSet.read_issue_data(issue)
     dataSet = dSet.set_date_range(dataSet, dataLoadStartDate,dataLoadEndDate)
-   
+
     oscSt = OscialltorStudies()
-    dataSet['DPO'], feature_dict = oscSt.detrend_PO(dataSet.Pri,
-                                                    10,
-                                                    feature_dict
-                                                    )
+    dataSet = oscSt.detrend_PO(dataSet, 'Close', 50)
+
     taLibMomSt = TALibMomentumStudies()
-    dataSet['RSI'], feature_dict = taLibMomSt.RSI(dataSet.Pri.values,
-                                                  20,
-                                                  feature_dict
-                                                  )
-    dataSet['ROC'], feature_dict = taLibMomSt.rate_OfChg(dataSet.Pri.values,
-                                                         10,
-                                                         feature_dict
-                                                         )
+    dataSet = taLibMomSt.RSI(dataSet, 20)
+    dataSet = taLibMomSt.rate_OfChg(dataSet, 50)
+    
     vStud = TALibVolatilityStudies()
-    dataSet['ATR'], feature_dict = vStud.ATR(dataSet.High.values,
-                                             dataSet.Low.values,
-                                             dataSet.Pri.values,
-                                             20,
-                                             feature_dict
-                                             )
-    zScore_lb = 3
+    dataSet = vStud.ATR(dataSet, 30)
+    
+    zScore_lb = 20
     transf = Transformers()
-    transfList = ['ATR','DPO','ROC']
+    transfList = list(feature_dict.keys())
     for i in transfList:
-        dataSet, feature_dict = transf.zScore_transform(dataSet, zScore_lb, i, feature_dict)
+        print(i)
+        dataSet= transf.zScore(dataSet, i, zScore_lb)
 
     # Plot price and indicators
     startDate = "2015-02-01"
     endDate = "2015-06-30"
-    
+
     plotDataSet = dataSet[startDate:endDate]
-    
-    # Set up plot dictionary
     plot_dict = {}
     plot_dict['Issue'] = issue
-    plot_dict['Plot_Vars'] = ['RSI', 'ROC', 'ROC_zScore_'+str(zScore_lb), 'DPO', 'DPO_zScore_'+str(zScore_lb), 'ATR', 'ATR_zScore_'+str(zScore_lb)]
+    plot_dict['Plot_Vars'] = list(feature_dict.keys())
     plot_dict['Volume'] = 'Yes'
-    
     plotIt.price_Ind_Vol_Plot(plot_dict, plotDataSet)
-    
+
     ######################
     #### testing Lag
-    lag_var = 'Pri'
+    feature_dict  = {}
+    lag_var = 'Close'
     lags = 5
-    dataSet, feature_dict = transf.add_lag(dataSet,
-                                           lag_var,
-                                           lags,
-                                           feature_dict
-                                           )
+    dataSet = transf.add_lag(dataSet, lag_var, lags)
     # Plot price and lags
     startDate = "2015-02-01"
     endDate = "2015-04-30"
     lagDataSet = dataSet[startDate:endDate]
-    
+
      # Set up plot dictionary
     plot_dict = {}
     plot_dict['Issue'] = issue
-    plot_dict['Plot_Vars'] = ['Pri_lag1', 'Pri_lag2', 'Pri_lag3', 'Pri_lag4']
+    plot_dict['Plot_Vars'] = list(feature_dict.keys())
     plot_dict['Volume'] = 'Yes'
-    
     plotIt.price_Ind_Vol_Plot(plot_dict, lagDataSet)
-    
+
     ####################
     # Testing normalized, centered, scaled
-    dataSet['ChaikinAD'], feature_dict = taLibVolSt.ChaikinAD(
-            dataSet.High.values,
-            dataSet.Low.values,
-            dataSet.Pri.values,
-            dataSet.Volume,
-            feature_dict)
+    feature_dict  = {}
 
-    dataSet, feature_dict = transf.scaler(
-            dataSet,
-            'ChaikinAD',
-            'robust',
-            feature_dict)
+    dataSet = taLibMomSt.RSI(dataSet, 20)
+    col_name = current_feature['Latest']
+    print(col_name)
+    
+#    def clean_dataset(df):
+#        assert isinstance(df, pd.DataFrame), "df needs to be a pd.DataFrame"
+#        df.dropna(inplace=True)
+#        indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
+#        return df
+    
+    dataSet = transf.clean_dataset(dataSet)
 
-    dataSet, feature_dict = transf.centering(
-            dataSet,
-            'ChaikinAD',
-            feature_dict,
-            14)
+    dataSet = transf.scaler(dataSet, col_name, 'robust')
 
-    dataSet, feature_dict = transf.normalizer(
-            dataSet,
-            'ChaikinAD',
-            200,
-            feature_dict,
-            mode='scale',
-            linear=False)
+    dataSet = transf.centering(dataSet, col_name, 14)
+
+    dataSet = transf.normalizer(dataSet, col_name, 200, mode='scale',
+                                linear=False
+                                )
 
     startDate = "2015-10-01"
     endDate = "2016-06-30"
     normDataSet = dataSet[startDate:endDate]
-    
+
      # Set up plot dictionary
     plot_dict = {}
     plot_dict['Issue'] = issue
-    plot_dict['Plot_Vars'] = ['ChaikinAD', 'ChaikinAD_Scaled', 'ChaikinAD_Centered', 'ChaikinAD_Normalized']
+    plot_dict['Plot_Vars'] = list(feature_dict.keys())
     plot_dict['Volume'] = 'Yes'
-    
     plotIt.price_Ind_Vol_Plot(plot_dict, normDataSet)

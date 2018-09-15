@@ -114,7 +114,7 @@ class PlotUtility:
             ax.label_outer()
             ax.legend(loc='upper left', frameon=True, fontsize=10)
             ax.minorticks_on()
-            ax.yaxis.set_major_formatter(mpl.ticker.StrMethodFormatter('{x:,.0f}'))
+            ax.yaxis.set_major_formatter(mpl.ticker.StrMethodFormatter('{x:,.2f}'))
             ax.xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
         plt.show()
         

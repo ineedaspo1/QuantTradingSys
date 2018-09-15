@@ -4,19 +4,16 @@ Created on Wed Jun  6 15:38:00 2018
 @author: KRUEGKJ
 ta_overlap_studies.py
 """
-import sys
-
 import talib as ta
 import numpy as np
-import pandas as pd
-import math
 import matplotlib.pyplot as plt
+from config import *
 
 
 class TALibOverlapStudies:
     """Group of Momentum studies utilized fromTALib """
 
-    def boll_bands(self, close, period, nbdev=2, feature_dict={}):
+    def boll_bands(self, df, period, nbdev=2):
         """Bollinger Bands
             Args:
                 close: Closing price of instrument
@@ -27,18 +24,21 @@ class TALibOverlapStudies:
                 Upper, middle, lower prices of Bollinger Band
                 feature_dict
         """
+        col_name = 'BollBands' + str(period)
+        current_feature['Latest'] = col_name
+        feature_dict[col_name] = 'Keep'
+        
         stddev = nbdev
-        bollUPPER, bollMIDDLE, bollLOWER = ta.BBANDS(
-                close,
+        df['BBUB'], df['BBMB'], df['BBLB'] = ta.BBANDS(
+                df.Close,
                 timeperiod=period,
                 nbdevup=stddev,
                 nbdevdn=stddev,
                 matype=0  # Moving average type: 0-simple
                 )
-        feature_dict['BollBands' + str(period)] = 'Keep'
-        return bollUPPER, bollMIDDLE, bollLOWER, feature_dict
+        return df
 
-    def exp_MA(self, close, period, feature_dict):
+    def exp_MA(self, df, period):
         """Exponential MA
             Args:
                 close: Closing price of instrument
@@ -48,13 +48,13 @@ class TALibOverlapStudies:
                 expMA
                 feature_dict
         """
-        feature_dict['EMA_' + str(period)] = 'Keep'
-        expMA = ta.EMA(close,
-                       period
-                       )
-        return expMA, feature_dict
+        col_name = 'EMA_' + str(period)
+        current_feature['Latest'] = col_name
+        feature_dict[col_name] = 'Keep'
+        df[col_name] = ta.EMA(df.Close, period)
+        return df
 
-    def simple_MA(self, close, period, feature_dict):
+    def simple_MA(self, df, period):
         """Simple MA
             Args:
                 close: Closing price of instrument
@@ -64,13 +64,13 @@ class TALibOverlapStudies:
                 simpleMA
                 feature_dict
         """
-        feature_dict['SMA_' + str(period)] = 'Keep'
-        simpleMA = ta.SMA(close,
-                          period
-                          )
-        return simpleMA, feature_dict
+        col_name = 'SMA_' + str(period)
+        current_feature['Latest'] = col_name
+        feature_dict[col_name] = 'Keep'
+        df[col_name] = ta.SMA(df.Close, period)
+        return df
 
-    def weighted_MA(self, close, period, feature_dict):
+    def weighted_MA(self, df, period):
         """Weighted MA calculates a weight for each value in the series.
         The more recent values are assigned greater weights.
             Args:
@@ -81,13 +81,14 @@ class TALibOverlapStudies:
                 weightedMA
                 feature_dict
         """
-        feature_dict['WgnthdMA_' + str(period)] = 'Keep'
-        weightedMA = ta.WMA(close,
-                            period  # default is 30
-                            )
-        return weightedMA, feature_dict
+        col_name = 'WghtdMA_' + str(period)
+        current_feature['Latest'] = col_name
+        feature_dict[col_name] = 'Keep'
+    
+        df[col_name] = ta.WMA(df.Close, period)
+        return df
 
-    def triple_MA(self, close, period, feature_dict):
+    def triple_MA(self, df, period):
         """Triple MA  a smoothing indicator with less lag than a straight
         exponential moving average.
             Args:
@@ -98,13 +99,14 @@ class TALibOverlapStudies:
                 tripleEMA
                 feature_dict
         """
-        feature_dict['TripleMA_' + str(period)] = 'Keep'
-        tripleEMA = ta.TEMA(close,
-                            period  # default is 30
-                            )
-        return tripleEMA, feature_dict
+        col_name = 'TripleMA_' + str(period)
+        current_feature['Latest'] = col_name
+        feature_dict[col_name] = 'Keep'
 
-    def tri_ma(self, close, period, feature_dict):
+        df[col_name] = ta.TEMA(df.Close, period)
+        return df
+
+    def tri_ma(self, df, period):
         """The Triangular Moving Average is a form of Weighted Moving
         Average wherein the weights are assigned in a triangular pattern.
         For example, the weights for a 7 period Triangular Moving Average
@@ -118,13 +120,14 @@ class TALibOverlapStudies:
                 triangularMA
                 feature_dict
         """
-        feature_dict['TriangMA_' + str(period)] = 'Keep'
-        triangularMA = ta.TRIMA(close,
-                                period  # default is 30
-                                )
-        return triangularMA, feature_dict
+        col_name = 'TriangMA_' + str(period)
+        current_feature['Latest'] = col_name
+        feature_dict[col_name] = 'Keep'
 
-    def dbl_exp_MA(self, close, period, feature_dict):
+        df[col_name] = ta.TRIMA(df.Close, period)
+        return df
+
+    def dbl_exp_MA(self, df, period):
         """The DEMA is a smoothing indicator with less lag than a straight
         exponential moving average
             Args:
@@ -135,13 +138,14 @@ class TALibOverlapStudies:
                 dblExpMA
                 feature_dict
         """
-        feature_dict['DblExpMA_' + str(period)] = 'Keep'
-        dblExpMA = ta.DEMA(close,
-                           period  # default is 30
-                           )
-        return dblExpMA, feature_dict
+        col_name = 'DblExpMA_' + str(period)
+        current_feature['Latest'] = col_name
+        feature_dict[col_name] = 'Keep'
 
-    def kaufman_AMA(self, close, period, feature_dict):
+        df[col_name] = ta.DEMA(df.Close, period)
+        return df
+
+    def kaufman_AMA(self, df, period):
         """The KAMA is a moving average designed to account for market noise
         or volatility. KAMA will closely follow prices when the price swings
         are relatively small and the noise is low. KAMA will adjust when the
@@ -158,13 +162,13 @@ class TALibOverlapStudies:
             To Update: KAMA has 3 parameteres, but TA-Lib only exposes 1. Move
                 to custom code to expose all 3
         """
-        feature_dict['KAMA_' + str(period)] = 'Keep'
-        kaufmanAMA = ta.KAMA(close,
-                             period
-                             )
-        return kaufmanAMA, feature_dict
+        col_name = 'KAMA_' + str(period)
+        current_feature['Latest'] = col_name
+        feature_dict[col_name] = 'Keep'
+        df[col_name] = ta.KAMA(df.Close, period)
+        return df
 
-    def mesa_AMA(self, close, flimit, slimit, feature_dict):
+    def mesa_AMA(self, df, flimit, slimit):
         """The MESA Adaptive Moving Average is a technical trend-following
         indicator which, according to its creator, adapts to price movement
         “based on the rate change of phase as measured by the Hilbert Transform
@@ -180,17 +184,13 @@ class TALibOverlapStudies:
                 fama: MAMA beign applied to mama
                 feature_dict
         """
-        feature_dict['MesaAMA_f' + str(flimit) + '_s' + str(slimit)] = 'Keep'
-        mama, fama = ta.MAMA(close,
-                             #  defaults are 0
-                             #  The FastLimit and SlowLimit parameters
-                             #  should be between 0.01 and 0.99
-                             flimit,
-                             slimit
-                             )
-        return mama, fama, feature_dict
+        col_name = 'MesaAMA_f' + str(flimit) + '_s' + str(slimit)
+        current_feature['Latest'] = col_name
+        feature_dict[col_name] = 'Keep'
+        df['MAMA'], df['FAMA'] = ta.MAMA(df.Close, flimit, slimit)
+        return df
 
-    def inst_Trendline(self, close, feature_dict):
+    def inst_Trendline(self, df):
         """The Ehlers Hilbert Transform - Instantaneous Trendline is a
          smoothed trendline,
             Args:
@@ -200,11 +200,13 @@ class TALibOverlapStudies:
                 instTrendline: resulting signal
                 feature_dict
         """
-        feature_dict['InstTrendline'] = 'Keep'
-        instTrendline = ta.HT_TRENDLINE(close)
-        return instTrendline, feature_dict
+        col_name = 'InstTrendline'
+        current_feature['Latest'] = col_name
+        feature_dict[col_name] = 'Keep'
+        df[col_name] = ta.HT_TRENDLINE(df.Close)
+        return df
 
-    def mid_point(self, close, period, feature_dict):
+    def mid_point(self, df, period):
         """(highest value + lowest value)/2 over period
             Args:
                 close: closing price of instrument
@@ -214,13 +216,13 @@ class TALibOverlapStudies:
                 midPrice: resulting signal
                 feature_dict
         """
-        feature_dict['Midpoint_' + str(period)] = 'Keep'
-        midPoint = ta.MIDPOINT(close,
-                               period  # default is 30
-                               )
-        return midPoint, feature_dict
+        col_name = 'Midpoint_' + str(period)
+        current_feature['Latest'] = col_name
+        feature_dict[col_name] = 'Keep'
+        df[col_name] = ta.MIDPOINT(df.Close, period)
+        return df
 
-    def mid_price(self, high, low, period, feature_dict):
+    def mid_price(self, df, period):
         """(highest high + lowest low)/2 over period
             Args:
                 high, low: high, low price of instrument
@@ -230,14 +232,13 @@ class TALibOverlapStudies:
                 midPrice: resulting signal
                 feature_dict
         """
-        feature_dict['Midprice_' + str(period)] = 'Keep'
-        midPrice = ta.MIDPRICE(high,
-                               low,
-                               period  # default is 30
-                               )
-        return midPrice, feature_dict
+        col_name = 'Midprice_' + str(period)
+        current_feature['Latest'] = col_name
+        feature_dict[col_name] = 'Keep'
+        df[col_name] = ta.MIDPRICE(df.High, df.Low, period)
+        return df
 
-    def pSAR(self, high, low, period, feature_dict):
+    def pSAR(self, df, period):
         """The parabolic SAR is a technical indicator used to determine the
         price direction of an asset, as well draw attention to when the price
         direction is changing.
@@ -249,17 +250,16 @@ class TALibOverlapStudies:
                 pSAR: resulting signal
                 feature_dict
         """
-        feature_dict['PSAR_' + str(period)] = 'Keep'
-        pSAR = ta.SAR(high,
-                      low,
-                      period  # default is 30
-                      )
-        return pSAR, feature_dict
-
+        col_name = 'PSAR_' + str(period)
+        current_feature['Latest'] = col_name
+        feature_dict[col_name] = 'Keep'
+        df[col_name] = ta.SAR(df.High, df.Low, period)
+        return df
 
 if __name__ == "__main__":   
     from plot_utils import *
     from retrieve_data import *
+    from config import *
     
     dataLoadStartDate = "2014-04-01"
     dataLoadEndDate = "2018-04-01"
@@ -270,33 +270,24 @@ if __name__ == "__main__":
 
     dSet = DataRetrieve()
     dataSet = dSet.read_issue_data(issue)
-
     dataSet = dSet.set_date_range(dataSet,
                                   dataLoadStartDate,
                                   dataLoadEndDate
                                   )
-    ub, mb, lb, feature_dict = taLibOS.boll_bands(dataSet.Pri.values,
-                                                 20,
-                                                 2,
-                                                 feature_dict
-                                                 )
-    dataSet['BB-UB'] = ub
-    dataSet['BB-MB'] = mb
-    dataSet['BB-LB'] = lb
-
-    dblexpma, feature_dict = taLibOS.dbl_exp_MA(dataSet.Pri.values,
-                                                20,
-                                                feature_dict
-                                                )
-    dataSet['DblExpMA_20'] = dblexpma
-    dataSet['KAMA_20'], feature_dict = taLibOS.kaufman_AMA(dataSet.Pri.values,
-                                                          20,
-                                                          feature_dict
-                                                          )
+    
+    dataSet = taLibOS.boll_bands(dataSet, 20, 2)
+    dataSet = taLibOS.dbl_exp_MA(dataSet, 20)
+    dataSet = taLibOS.kaufman_AMA(dataSet, 20)
 
     startDate = "2015-02-01"
     endDate = "2015-06-30"
     plotDF = dataSet[startDate:endDate]
+    
+#    plot_dict = {}
+#    plot_dict['Issue'] = issue
+#    plot_dict['Plot_Vars'] = list(feature_dict.keys())
+#    plot_dict['Volume'] = 'Yes'
+#    plotIt.price_Ind_Vol_Plot(plot_dict, plotDF)
     
     N = len(plotDF)
     ind = np.arange(N)  # the evenly spaced plot indices
@@ -315,9 +306,9 @@ if __name__ == "__main__":
              'k-', markersize=3,
              label=issue)
     top.plot(ind,
-             plotDF['BB-UB'], 'c-')
-    top.plot(ind, plotDF['BB-MB'], 'c--')
-    top.plot(ind, plotDF['BB-LB'], 'c-')
+             plotDF['BBUB'], 'c-')
+    top.plot(ind, plotDF['BBMB'], 'c--')
+    top.plot(ind, plotDF['BBLB'], 'c-')
     top.plot(ind, plotDF['DblExpMA_20'], 'y-')
     top.plot(ind, plotDF['KAMA_20'], 'g-')
     bottom.bar(ind, plotDF['Volume'], label='Volume')
@@ -339,22 +330,10 @@ if __name__ == "__main__":
         ax.grid(b=True, which='minor', color='r', linestyle='-', alpha=0.2)
         ax.minorticks_on()
 
-    mfast, mslow, feature_dict = taLibOS.mesa_AMA(dataSet.Pri.values,
-                                                 0.9,
-                                                 0.1,
-                                                 feature_dict
-                                                 )
-    dataSet['MesaAMA_Fast'] = mfast
-    dataSet['MesaAMA_Slow'] = mslow
-
-    dataSet['EMA_30'], feature_dict = taLibOS.exp_MA(dataSet.Pri.values,
-                                                    30,
-                                                    feature_dict
-                                                    )
-    inst_trend, feature_dict = taLibOS.inst_Trendline(dataSet.Pri.values,
-                                                     feature_dict
-                                                     )
-    dataSet['HT_Trendline'] = inst_trend
+        
+    dataSet = taLibOS.mesa_AMA(dataSet, 0.9, 0.1)
+    dataSet = taLibOS.exp_MA(dataSet, 30)
+    dataSet = taLibOS.inst_Trendline(dataSet)
 
     startDate = "2015-02-01"
     endDate = "2015-06-30"
@@ -371,10 +350,10 @@ if __name__ == "__main__":
              'k-',
              markersize=3,
              label=issue)
-    top.plot(ind, plotDF['MesaAMA_Fast'], 'g-')
-    top.plot(ind, plotDF['MesaAMA_Slow'], 'r-')
+    top.plot(ind, plotDF['MAMA'], 'g-')
+    top.plot(ind, plotDF['FAMA'], 'r-')
     top.plot(ind, plotDF['EMA_30'], 'b--', alpha=0.6)
-    top.plot(ind, plotDF['HT_Trendline'], 'y-')
+    top.plot(ind, plotDF['InstTrendline'], 'y-')
     bottom.bar(ind, plotDF['Volume'], label='Volume')
     plt.subplots_adjust(hspace=0.05)
     #  set the labels
@@ -394,36 +373,13 @@ if __name__ == "__main__":
         ax.grid(b=True, which='minor', color='r', linestyle='-', alpha=0.2)
         ax.minorticks_on()
 
-    dataSet['Midpt_30'], feature_dict = taLibOS.mid_point(dataSet.Pri.values,
-                                                         30,
-                                                         feature_dict
-                                                         )
-    dataSet['Midprc_30'], feature_dict = taLibOS.mid_price(dataSet.High.values,
-                                                          dataSet.Low.values,
-                                                          30,
-                                                          feature_dict
-                                                          )
-    dataSet['PSAR'], feature_dict = taLibOS.pSAR(dataSet.High.values,
-                                                 dataSet.Low.values,
-                                                 30,
-                                                 feature_dict
-                                                 )
-    dataSet['SMA_30'], feature_dict = taLibOS.simple_MA(dataSet.Pri.values,
-                                                       30,
-                                                       feature_dict
-                                                       )
-    dataSet['TEMA_30'], feature_dict = taLibOS.triple_MA(dataSet.Pri.values,
-                                                         30,
-                                                         feature_dict
-                                                         )
-    dataSet['TRIMA_30'], feature_dict = taLibOS.tri_ma(dataSet.Pri.values,
-                                                       30,
-                                                       feature_dict
-                                                       )
-    dataSet['WMA_30'], feature_dict = taLibOS.weighted_MA(dataSet.Pri.values,
-                                                         30,
-                                                         feature_dict
-                                                         )
+    dataSet = taLibOS.mid_point(dataSet, 30)
+    dataSet = taLibOS.mid_price(dataSet,30)
+    dataSet = taLibOS.pSAR(dataSet, 30)
+    dataSet = taLibOS.simple_MA(dataSet, 30)
+    dataSet = taLibOS.triple_MA(dataSet, 30)
+    dataSet = taLibOS.tri_ma(dataSet, 30)
+    dataSet = taLibOS.weighted_MA(dataSet, 30)
 
     startDate = "2015-02-01"
     endDate = "2015-06-30"
@@ -441,13 +397,11 @@ if __name__ == "__main__":
              markersize=3,
              label=issue
              )
-    top.plot(ind, plotDF['Midpt_30'], 'g-')
-    top.plot(ind, plotDF['Midprc_30'], 'y-')
-    top.plot(ind, plotDF['PSAR'], 'r+')
-    top.plot(ind, plotDF['SMA_30'], 'b-')
-    top.plot(ind, plotDF['TEMA_30'], 'm-')
-    top.plot(ind, plotDF['TRIMA_30'], 'c-')
-    top.plot(ind, plotDF['WMA_30'], 'k:')
+    plot_list = list(feature_dict.keys())
+    cnt = len(plot_list)
+    for n in range(7,cnt):
+        print (n)
+        top.plot(ind, plotDF[plot_list[n]])
     bottom.bar(ind, plotDF['Volume'], label='Volume')
     plt.subplots_adjust(hspace=0.05)
     #  set the labels

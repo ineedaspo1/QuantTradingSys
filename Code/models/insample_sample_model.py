@@ -13,8 +13,9 @@ sys.path.append('../utilities')
 from plot_utils import *
 from time_utils import *
 from retrieve_data import *
-from indicators import *
+from candle_indicators import *
 from transformers import *
+from ta_momentum_studies import *
 #from stat_tests import *
 
 import pandas as pd
@@ -64,11 +65,14 @@ if __name__ == "__main__":
     plotIt = PlotUtility()
     timeUtil = TimeUtility()
     ct = ComputeTarget()
+    candle_ind = CandleIndicators()
+    dSet = DataRetrieve()
+    taLibMomSt = TALibMomentumStudies()
     
-    issue = "TLT"
+    feature_dict = {}
     
     # Load issue data
-    dSet = DataRetrieve()
+    issue = "TLT"
     dataSet = dSet.read_issue_data(issue) 
     
     #set beLong level
@@ -83,31 +87,50 @@ if __name__ == "__main__":
     transf = Transformers()
     lag_var = 'Pri'
     lags = 4
-    dataSet = transf.add_lag(dataSet, lag_var, lags)
+    dataSet, feature_dict = transf.add_lag(dataSet, lag_var, lags, feature_dict)
     
     # set % return variables and lags
     dataSet["percReturn"] = dataSet["Pri"].pct_change()*100
     lag_var = 'percReturn'
     lags = 5    
-    dataSet = transf.add_lag(dataSet, lag_var, lags) 
+    dataSet, feature_dict = transf.add_lag(dataSet, lag_var, lags, feature_dict) 
     
-    # add Close Higher features
-    dataSet['1DayHigherClose'] = dataSet['Pri'] > dataSet['Pri_lag1']
-    dataSet['2DayHigherClose'] = dataSet['Pri'] > dataSet['Pri_lag2']
-    dataSet['3DayHigherClose'] = dataSet['Pri'] > dataSet['Pri_lag3']
-    dataSet['4DayHigherClose'] = dataSet['Pri'] > dataSet['Pri_lag4']
-    
-    dataSet['1DayLowerClose'] = dataSet['Pri'] < dataSet['Pri_lag1']
-    dataSet['2DayLowerClose'] = dataSet['Pri'] < dataSet['Pri_lag2']
-    dataSet['3DayLowerClose'] = dataSet['Pri'] < dataSet['Pri_lag3']
-    dataSet['4DayLowerClose'] = dataSet['Pri'] < dataSet['Pri_lag4']
-    
+    days_to_plot = 4
+    for i in range(1, days_to_plot + 1):
+        num_days = i
+        dataSet, feature_dict = candle_ind.higher_close(dataSet,
+                                                        num_days,
+                                                        feature_dict
+                                                        )
+        dataSet, feature_dict = candle_ind.lower_close(dataSet,
+                                                       num_days,
+                                                       feature_dict
+                                                       )
+    dataSet['RSI_20'], feature_dict = taLibMomSt.RSI(dataSet.Pri.values,
+                                                     20,
+                                                     feature_dict
+                                                     )
+    dataSet['PPO'], feature_dict = taLibMomSt.PPO(dataSet.Pri.values,
+                                                  10,
+                                                  24,
+                                                  feature_dict
+                                                  )
+    dataSet['CMO_20'], feature_dict = taLibMomSt.CMO(dataSet.Pri.values,
+                                                     20,
+                                                     feature_dict
+                                                     )
+    dataSet['CCI_20'], feature_dict = taLibMomSt.CCI(dataSet.High.values,
+                                                     dataSet.Low.values,
+                                                     dataSet.Pri.values,
+                                                     20,
+                                                     feature_dict
+                                                     )
     
     # Set IS-OOS parameters
     pivotDate = datetime.date(2018, 4, 2)
     is_oos_ratio = 3
-    oos_months = 8
-    segments = 1
+    oos_months = 4
+    segments = 4
     
     isOosDates = timeUtil.is_oos_data_split(issue, pivotDate, is_oos_ratio, oos_months, segments)
     dataLoadStartDate = isOosDates[0]
@@ -119,14 +142,15 @@ if __name__ == "__main__":
     oos_end_date = oos_start_date + relativedelta(months=oos_months)
     
     modelStartDate = is_start_date
+    print(modelStartDate)
     modelEndDate = modelStartDate + relativedelta(months=is_months)
-    
+    print(modelEndDate)
     #dataSet = read_issue_data(issue, dataLoadStartDate, pivotDate)
     print(issue)
     nrows = dataSet.shape[0]
     print ("nrows: ", nrows)
     
-    # save Dataset
+    # save Dataset of analysis
     print("====Saving dataSet====")
     modelname = 'RF'
     file_title = issue + "_in_sample_" + modelname + ".pkl"
@@ -134,7 +158,7 @@ if __name__ == "__main__":
     dataSet.to_pickle(file_name)
     
     # Set data set for analysls
-    dataSet = dSet.set_date_range(dataSet, dataLoadStartDate,pivotDate)
+    dataSet2 = dSet.set_date_range(dataSet, dataLoadStartDate, pivotDate)
 
     model_results = []
     
@@ -153,12 +177,9 @@ if __name__ == "__main__":
         cm_sum_is = np.zeros((2,2))
         cm_sum_oos = np.zeros((2,2))
         
-        df2 = pd.date_range(start=modelStartDate, end=modelEndDate, freq=us_cal)
-        mmData = dataSet.reindex(df2)
-        #print(modelData)
+        mmData = dataSet2[modelStartDate:modelEndDate]
         
-        # set target var
-        
+        # set target var      
         nrows = mmData.shape[0]
         #print ("nrows: ", nrows)
         #print (mmData.shape)
@@ -172,11 +193,10 @@ if __name__ == "__main__":
         
         plotTitle = issue + ", " + str(modelStartDate) + " to " + str(modelEndDate)
         plotIt.plot_v2x(mmData['Pri'], mmData['beLong'], plotTitle)
-        plotIt.histogram(mmData['beLong'], x_label="beLong signal", y_label="Frequency", 
-          title = "beLong distribution for " + issue)        
+        plotIt.histogram(mmData['beLong'], x_label="beLong signal", y_label="Frequency", title = "beLong distribution for " + issue)        
         plt.show(block=False)
         
-        mmData = mmData.drop(['Pri'],axis=1)
+        mmData = mmData.drop(['Pri','Date'],axis=1)
         
         datay = mmData['beLong']
         nrows = datay.shape[0]
@@ -184,6 +204,29 @@ if __name__ == "__main__":
         
         mmData = mmData.drop(['beLong'],axis=1)
         dataX = mmData
+        
+        #############
+        # Correlation examination
+        #####################
+        # get names of features
+        names = dataX.columns.values.tolist()
+        # correlation plot        
+        def correlation_matrix(df,size=10):
+            from matplotlib import pyplot as plt
+            from matplotlib import cm as cm
+            fig = plt.figure(figsize=(size, size))
+            ax1 = fig.add_subplot(111)
+            cmap = cm.get_cmap('jet', 30)
+            corr = df.corr()
+            cax = ax1.imshow(corr, interpolation="nearest", cmap=cmap)
+            ax1.grid(True)
+            plt.title('Feature Correlation')
+            plt.xticks(range(len(corr.columns)), corr.columns, rotation='vertical');
+            plt.yticks(range(len(corr.columns)), corr.columns);
+            # Add colorbar, make sure to specify tick locations to match desired ticklabels
+            fig.colorbar(cax, ticks=[-1, -.5, 0, .5 ,1])
+            plt.show()
+        correlation_matrix(dataX)
         
         #  Copy from pandas dataframe to numpy arrays
         dy = np.zeros_like(datay)
@@ -194,11 +237,9 @@ if __name__ == "__main__":
         
         ######################
         # ML section
-        
         iterations = 50
         
         model = RandomForestClassifier(n_jobs=-1, random_state=55, min_samples_split=10 , n_estimators=500, max_features = 'auto', min_samples_leaf = 10, oob_score = 'TRUE')
-        
         
         #  Make 'iterations' index vectors for the train-test split
         sss = StratifiedShuffleSplit(n_splits=iterations,test_size=0.33, random_state=None)
@@ -208,10 +249,10 @@ if __name__ == "__main__":
             X_train, X_test = dX[train_index], dX[test_index]
             y_train, y_test = dy[train_index], dy[test_index] 
             
-        #  fit the model to the in-sample data
+            #  fit the model to the in-sample data
             model.fit(X_train, y_train)
             
-        #  test the in-sample fit    
+            #  test the in-sample fit    
             y_pred_is = model.predict(X_train)
             cm_is = confusion_matrix(y_train, y_pred_is)
             cm_sum_is = cm_sum_is + cm_is
@@ -220,7 +261,7 @@ if __name__ == "__main__":
             recall_scores_is.append(recall_score(y_train, y_pred_is))
             f1_scores_is.append(f1_score(y_train, y_pred_is))
             
-        #  test the out-of-sample data
+            #  test the out-of-sample data
             y_pred_oos = model.predict(X_test)
             cm_oos = confusion_matrix(y_test, y_pred_oos)
             cm_sum_oos = cm_sum_oos + cm_oos
@@ -228,7 +269,10 @@ if __name__ == "__main__":
             precision_scores_oos.append(precision_score(y_test, y_pred_oos))
             recall_scores_oos.append(recall_score(y_test, y_pred_oos))
             f1_scores_oos.append(f1_score(y_test, y_pred_oos))
-
+     
+        
+        print (sorted(zip(map(lambda x: round(x, 2), model.feature_importances_), names), reverse=True))
+        
         
         print ("\n\nSymbol is ", issue)
         print ("Learning algorithm is ", model)
@@ -247,8 +291,7 @@ if __name__ == "__main__":
         
         modelStartDate = modelEndDate  + BDay(1)
         modelEndDate = modelStartDate + relativedelta(months=is_months) - BDay(1)
-
-        
+ 
     df = pd.DataFrame(model_results)
     df = df[['Issue','StartDate','EndDate','Model','Rows','beLongCount','Predictors','IS-Accuracy','IS-Precision','IS-Recall','IS-F1','OOS-Accuracy','OOS-Precision','OOS-Recall','OOS-F1']]
     print(df)
@@ -259,7 +302,6 @@ if __name__ == "__main__":
     current_directory = os.getcwd()
     df.to_csv(current_directory+"\\"+filename, encoding='utf-8', index=False)
     
-    
     # save Dataset
     print("====Saving model====")
     
@@ -268,9 +310,3 @@ if __name__ == "__main__":
     file_name = os.path.join(r'C:\Users\kruegkj\Documents\GitHub\QuantTradingSys\Code\models\model_data', file_title)
     #joblib.dump(model,filename)
     pickle.dump(model, open(file_name, 'wb'))
-    
-        
-        
-        
-        
-        

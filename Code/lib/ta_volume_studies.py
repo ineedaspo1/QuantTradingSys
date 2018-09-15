@@ -11,11 +11,12 @@ sys.path.append('../lib')
 sys.path.append('../utilities')
 
 import talib as ta
+from config import *
 
 
 class TALibVolumeStudies:
     """Group of Volume studies utilized fromTALib """
-    def ChaikinAD(self, high, low, close, volume, feature_dict):
+    def ChaikinAD(self, df):
         """ChaikinAD The Chaikin Accumulation / Distribution (AD) 
         line is a measure of the money flowing into or out of a security. 
         It is similar to On Balance Volume (OBV).    
@@ -27,15 +28,18 @@ class TALibVolumeStudies:
                 chaikinAD
                 feature_dict
         """
-        feature_dict['ChaikinAD']='Keep'
-        chaikinAD = ta.AD(high,
-            low,
-            close, 
-            volume
+        col_name = 'ChaikinAD'
+        current_feature['Latest'] = col_name
+        feature_dict[col_name] = 'Keep'
+        
+        df[col_name] = ta.AD(df.High,
+            df.Low,
+            df.Close, 
+            df.Volume
             )
-        return chaikinAD, feature_dict
+        return df
     
-    def ChaikinADOSC(self, high, low, close, volume, fastperiod, slowperiod, feature_dict):
+    def ChaikinADOSC(self, df, fst_prd=5, slw_prd=30):
         """ChaikinADOSC The Chaikin Accumulation / Distribution (AD) Osc 
         moving average oscillator based on the Accumulation/Distribution
         indicator.    
@@ -49,17 +53,19 @@ class TALibVolumeStudies:
                 chaikinADOSC
                 feature_dict
         """
-        feature_dict['ChaikinADOSC_f'+str(fastperiod)+'_s'+str(slowperiod)]='Keep'
-        chaikinADOSC = ta.ADOSC(high,
-            low,
-            close, 
-            volume,
-            fastperiod,
-            slowperiod
-            )
-        return chaikinADOSC, feature_dict
+        col_name = 'ChaikinADOSC_f' + str(fst_prd) + '_s' + str(slw_prd)
+        current_feature['Latest'] = col_name
+        feature_dict[col_name] = 'Keep'
+        df[col_name] = ta.ADOSC(df.High,
+                                df.Low,
+                                df.Close, 
+                                df.Volume,
+                                fst_prd,
+                                slw_prd
+                                )
+        return df
     
-    def OBV(self, close, volume, feature_dict):
+    def OBV(self, df):
         """On Balance Volume (OBV) measures buying and selling pressure
         as a cumulative indicator that adds volume on up days and 
         subtracts volume on down days.    
@@ -71,13 +77,15 @@ class TALibVolumeStudies:
                 onBalVol
                 feature_dict
         """
-        feature_dict['OBV']='Keep'
-        onBalVol = ta.OBV(close, 
-            volume
-            )
-        return onBalVol, feature_dict
+        col_name = 'OBV'
+        current_feature['Latest'] = col_name
+        feature_dict[col_name] = 'Keep'
+        df[col_name] = ta.OBV(df.Close, 
+                              df.Volume
+                              )
+        return df
     
-    def MFI(self, dataSet, period, feature_dict):
+    def MFI(self, df, period):
         """Money Flow Index (MFI)
         Uses both price and volume to measure buying and selling pressure. It is
         positive when the typical price rises (buying pressure) and negative when
@@ -92,35 +100,38 @@ class TALibVolumeStudies:
         Returns:
             dataSet: Dataset with new feature generated.
         """
-        feature_dict['MFI_'+str(period)]='Keep'
-        dataSet['Up_or_Down'] = 0
-        dataSet.loc[(dataSet['Close'] > dataSet['Close'].shift(1)), 'Up_or_Down'] = 1
-        dataSet.loc[(dataSet['Close'] < dataSet['Close'].shift(1)), 'Up_or_Down'] = 2
+        col_name = 'MFI_' + str(period)
+        current_feature['Latest'] = col_name
+        feature_dict[col_name] = 'Keep'
+
+        df['Up_or_Down'] = 0
+        df.loc[(df['Close'] > df['Close'].shift(1)), 'Up_or_Down'] = 1
+        df.loc[(df['Close'] < df['Close'].shift(1)), 'Up_or_Down'] = 2
 
         # 1 typical price
-        tp = (dataSet['High'] + dataSet['Low'] + dataSet['Close']) / 3.
+        tp = (df['High'] + df['Low'] + df['Close']) / 3.
         # 2 money flow
-        mf = tp * dataSet['Volume']
+        mf = tp * df['Volume']
         # 3 positive and negative money flow with n periods
-        dataSet['1p_Positive_Money_Flow'] = 0.0
-        dataSet.loc[dataSet['Up_or_Down'] == 1, '1p_Positive_Money_Flow'] = mf
-        n_positive_mf = dataSet['1p_Positive_Money_Flow'].rolling(period).sum()
+        df['1p_Positive_Money_Flow'] = 0.0
+        df.loc[df['Up_or_Down'] == 1, '1p_Positive_Money_Flow'] = mf
+        n_positive_mf = df['1p_Positive_Money_Flow'].rolling(period).sum()
 
-        dataSet['1p_Negative_Money_Flow'] = 0.0
-        dataSet.loc[dataSet['Up_or_Down'] == 2, '1p_Negative_Money_Flow'] = mf
-        n_negative_mf = dataSet['1p_Negative_Money_Flow'].rolling(period).sum()
-        dataSet = dataSet.drop(['1p_Positive_Money_Flow','Up_or_Down','1p_Negative_Money_Flow'], axis=1)  
+        df['1p_Negative_Money_Flow'] = 0.0
+        df.loc[df['Up_or_Down'] == 2, '1p_Negative_Money_Flow'] = mf
+        n_negative_mf = df['1p_Negative_Money_Flow'].rolling(period).sum()
+        df = df.drop(['1p_Positive_Money_Flow','Up_or_Down','1p_Negative_Money_Flow'], axis=1)  
         
         # 4 money flow index
         mr = n_positive_mf / n_negative_mf
         mr = (100 - (100 / (1 + mr)))
-        dataSet['MFI'] = mr
+        df[col_name] = mr
         
-        return dataSet, feature_dict    
+        return df
  
 class CustVolumeStudies:
     """Group of Custom Volume studies"""
-    def ease_OfMvmnt(self, data, period, feature_dict):
+    def ease_OfMvmnt(self, data, period):
         """Ease of Movement (EMV) is a volume-based oscillator which
         was developed by Richard Arms. EVM indicates the ease with which
         the prices rise or fall taking into account the volume of the
@@ -133,17 +144,21 @@ class CustVolumeStudies:
                 dataframe with EVM added
                 feature_dict
         """
-        feature_dict['EMV_'+str(period)]='Keep'
+        col_name = 'EMV_' + str(period)
+        current_feature['Latest'] = col_name
+        feature_dict[col_name] = 'Keep'
+        
         dm = ((data['High'] + data['Low'])/2) - ((data['High'].shift(1) + data['Low'].shift(1))/2)
         br = (data['Volume'] / 100000000) / ((data['High'] - data['Low']))
         EVM = dm / br 
         EVM_MA = EVM.rolling(window=period, center=False).mean() 
-        data['EVM'] = EVM_MA
-        return data, feature_dict
+        data[col_name] = EVM_MA
+        return data
     
 if __name__ == "__main__":
     from plot_utils import *
     from retrieve_data import *
+    from config import *
     
     taLibVolSt = TALibVolumeStudies()
     custVolSt = CustVolumeStudies()
@@ -153,17 +168,17 @@ if __name__ == "__main__":
     dataLoadStartDate = "2014-04-01"
     dataLoadEndDate = "2018-04-01"
     issue = "TLT"
-    feature_dict = {}
-    
+
     dataSet = dSet.read_issue_data(issue)
-    dataSet = dSet.set_date_range(dataSet, dataLoadStartDate,dataLoadEndDate)
-        
-    dataSet['ChaikinAD'], feature_dict = taLibVolSt.ChaikinAD(dataSet.High.values, dataSet.Low.values, dataSet.Pri.values, dataSet.Volume, feature_dict)
-    dataSet['ChaikinADOSC'], feature_dict = taLibVolSt.ChaikinADOSC(dataSet.High.values, dataSet.Low.values, dataSet.Pri.values, dataSet.Volume, 3, 10, feature_dict)
-    dataSet['OBV'], feature_dict = taLibVolSt.OBV(dataSet.Pri.values, dataSet.Volume, feature_dict)
-    # MFI
-    dataSet, feature_dict = taLibVolSt.MFI(dataSet, 14, feature_dict)
-    dataSet, feature_dict = custVolSt.ease_OfMvmnt(dataSet, 14, feature_dict)
+    dataSet = dSet.set_date_range(dataSet,
+                                  dataLoadStartDate,
+                                  dataLoadEndDate
+                                  )      
+    dataSet = taLibVolSt.ChaikinAD(dataSet)
+    dataSet = taLibVolSt.ChaikinADOSC(dataSet, 3, 10)
+    dataSet = taLibVolSt.OBV(dataSet)
+    dataSet = taLibVolSt.MFI(dataSet, 14)
+    dataSet = custVolSt.ease_OfMvmnt(dataSet, 14)
     
     startDate = "2015-02-01"
     endDate = "2015-04-30"
@@ -172,6 +187,6 @@ if __name__ == "__main__":
     # Set up dictionary and plot HigherClose
     plot_dict = {}
     plot_dict['Issue'] = issue
-    plot_dict['Plot_Vars'] = ['ChaikinAD', 'ChaikinADOSC', 'OBV', 'MFI', 'EVM']
+    plot_dict['Plot_Vars'] = list(feature_dict.keys())
     plot_dict['Volume'] = 'Yes'
     plotIt.price_Ind_Vol_Plot(plot_dict, plotDF)

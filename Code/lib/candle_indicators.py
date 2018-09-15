@@ -5,11 +5,12 @@ Created on Wed Jun  6 15:38:00 2018
 candle_indicators.py
 """
 import numpy as np
+from config import *
 
 
 class CandleIndicators:
     """Group of custom candle-based indicator features"""
-    def higher_close(self, dataSet, num_days, feature_dict):
+    def higher_close(self, df, num_days):
         """Returns true if closing price greater than closing
         price num_days previous
            Args:
@@ -20,17 +21,19 @@ class CandleIndicators:
                 dataSet
                 feature_dict
         """
-        column_name = str(num_days) + 'dHigherCls'
-        feature_dict[column_name] = 'Keep'
-        nrows = dataSet.shape[0]
+        col_name = str(num_days) + 'dHigherCls'
+        current_feature['Latest'] = col_name
+        feature_dict[col_name] = 'Keep'
+        
+        nrows = df.shape[0]
         pChg = np.zeros(nrows)
-        p = dataSet.Pri
+        p = df.Close
         for i in range(num_days, nrows):
             pChg[i] = p[i] > p[i-num_days]
-        dataSet[column_name] = pChg
-        return dataSet, feature_dict
+        df[col_name] = pChg
+        return df
 
-    def lower_close(self, dataSet, num_days, feature_dict):
+    def lower_close(self, df, num_days):
         """Returns true if closing price lesser than closing
         price num_days previous
            Args:
@@ -41,15 +44,17 @@ class CandleIndicators:
                 dataSet
                 feature_dict
         """
-        column_name = str(num_days) + 'dLowerCls'
+        col_name = str(num_days) + 'dLowerCls'
+        current_feature['Latest'] = col_name
+        feature_dict[col_name] = 'Keep'
+
         nrows = dataSet.shape[0]
         pChg = np.zeros(nrows)
-        p = dataSet.Pri
+        p = df.Close
         for i in range(num_days, nrows):
             pChg[i] = p[i] < p[i-num_days]
-        feature_dict[column_name] = 'Keep'
-        dataSet[column_name] = pChg
-        return dataSet, feature_dict
+        df[col_name] = pChg
+        return df
 
 if __name__ == "__main__":
     from plot_utils import *
@@ -73,31 +78,15 @@ if __name__ == "__main__":
     days_to_plot = 4
     for i in range(1, days_to_plot + 1):
         num_days = i
-        dataSet, feature_dict = candle_ind.higher_close(dataSet,
-                                                        num_days,
-                                                        feature_dict
-                                                        )
-        dataSet, feature_dict = candle_ind.lower_close(dataSet,
-                                                       num_days,
-                                                       feature_dict
-                                                       )
+        dataSet = candle_ind.higher_close(dataSet, num_days)
+        dataSet = candle_ind.lower_close(dataSet, num_days)
 
     startDate = "2015-02-01"
     endDate = "2015-03-30"
     plotDF = dataSet[startDate:endDate]
         
-    # Set up dictionary and plot HigherClose
     plot_dict = {}
     plot_dict['Issue'] = issue
-    for i in range(1, days_to_plot + 1):
-        plot_dict.setdefault('Plot_Vars', []).append(str(i) + 'dHigherCls')
-    plot_dict['Volume'] = 'Yes'
-    plotIt.price_Ind_Vol_Plot(plot_dict, plotDF)
-    
-    # Set up dictionary and plot LowerClose
-    plot_dict = {}
-    plot_dict['Issue'] = issue
-    for i in range(1, days_to_plot + 1):
-        plot_dict.setdefault('Plot_Vars', []).append(str(i) + 'dLowerCls')
+    plot_dict['Plot_Vars'] = list(feature_dict.keys())
     plot_dict['Volume'] = 'Yes'
     plotIt.price_Ind_Vol_Plot(plot_dict, plotDF)
