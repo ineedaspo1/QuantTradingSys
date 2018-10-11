@@ -160,7 +160,7 @@ if __name__ == "__main__":
 
     dataSet = dSet.set_date_range(dataSet, dataLoadStartDate, dataLoadEndDate)
 
-    dataSet = taLibMomSt.RSI(dataSet, 20)
+    dataSet = taLibMomSt.RSI(dataSet, 2)
     dataSet = taLibMomSt.PPO(dataSet, 12, 26)
     dataSet = taLibMomSt.CMO(dataSet, 20)
     dataSet = taLibMomSt.CCI(dataSet, 20)

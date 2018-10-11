@@ -26,11 +26,11 @@ import datetime as dt
 from pandas.core import datetools
 import time
 
-issue = 'EWH'
+issue = 'TLT'
 #  Set the path for the csv file
 #path = 'oos_equity_eval_EWH_test1.csv'
 # latest RT plus OOS
-path = 'EWH_tms1_2018-07-01.csv'
+path = 'TLT_tms1_2018-04-02.csv'
 
 #  Use pandas to read the csv file, 
 #  creating a pandas dataFrame
@@ -59,7 +59,7 @@ sst['CAR25'] = 0.0
 #start = dt.datetime(2010,1,4)
 start = dt.datetime(2017, 9, 1)
 #  end date is inclusive
-end = dt.datetime(2018, 6, 29)
+end = dt.datetime(2018, 4, 2)
 updateInterval = 1
 
 forecastHorizon = 190

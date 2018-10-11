@@ -88,7 +88,7 @@ class TALibOverlapStudies:
         df[col_name] = ta.WMA(df.Close, period)
         return df
 
-    def triple_MA(self, df, period):
+    def triple_EMA(self, df, period):
         """Triple MA  a smoothing indicator with less lag than a straight
         exponential moving average.
             Args:
@@ -99,14 +99,14 @@ class TALibOverlapStudies:
                 tripleEMA
                 feature_dict
         """
-        col_name = 'TripleMA_' + str(period)
+        col_name = 'TripleEMA_' + str(period)
         current_feature['Latest'] = col_name
         feature_dict[col_name] = 'Keep'
 
         df[col_name] = ta.TEMA(df.Close, period)
         return df
 
-    def tri_ma(self, df, period):
+    def triangMA(self, df, period):
         """The Triangular Moving Average is a form of Weighted Moving
         Average wherein the weights are assigned in a triangular pattern.
         For example, the weights for a 7 period Triangular Moving Average
@@ -127,7 +127,7 @@ class TALibOverlapStudies:
         df[col_name] = ta.TRIMA(df.Close, period)
         return df
 
-    def dbl_exp_MA(self, df, period):
+    def dblEMA(self, df, period):
         """The DEMA is a smoothing indicator with less lag than a straight
         exponential moving average
             Args:
@@ -138,7 +138,7 @@ class TALibOverlapStudies:
                 dblExpMA
                 feature_dict
         """
-        col_name = 'DblExpMA_' + str(period)
+        col_name = 'DblEMA_' + str(period)
         current_feature['Latest'] = col_name
         feature_dict[col_name] = 'Keep'
 
@@ -181,13 +181,23 @@ class TALibOverlapStudies:
                 feature_dict: Dictionary of added features
             Return:
                 mama: MESA Adaptive MA
-                fama: MAMA beign applied to mama
+                fama: Following AMA being applied to mama
                 feature_dict
         """
         col_name = 'MesaAMA_f' + str(flimit) + '_s' + str(slimit)
         current_feature['Latest'] = col_name
         feature_dict[col_name] = 'Keep'
         df['MAMA'], df['FAMA'] = ta.MAMA(df.Close, flimit, slimit)
+        return df
+    
+    def delta_MESA_AMA(self, df, flimit, slimit):
+        col_name = 'DeltaMesaAMA_f' + str(flimit) + '_s' + str(slimit)
+        current_feature['Latest'] = col_name
+        feature_dict[col_name] = 'Keep'
+        df['MAMA'], df['FAMA'] = ta.MAMA(df.Close, flimit, slimit)
+        df[col_name] = df['MAMA'] - df['FAMA']
+        feature_dict['MAMA'] = 'Drop'
+        feature_dict['FAMA'] = 'Drop'
         return df
 
     def inst_Trendline(self, df):
@@ -276,7 +286,7 @@ if __name__ == "__main__":
                                   )
     
     dataSet = taLibOS.boll_bands(dataSet, 20, 2)
-    dataSet = taLibOS.dbl_exp_MA(dataSet, 20)
+    dataSet = taLibOS.dblEMA(dataSet, 20)
     dataSet = taLibOS.kaufman_AMA(dataSet, 20)
 
     startDate = "2015-02-01"
@@ -309,7 +319,7 @@ if __name__ == "__main__":
              plotDF['BBUB'], 'c-')
     top.plot(ind, plotDF['BBMB'], 'c--')
     top.plot(ind, plotDF['BBLB'], 'c-')
-    top.plot(ind, plotDF['DblExpMA_20'], 'y-')
+    top.plot(ind, plotDF['DblEMA_20'], 'y-')
     top.plot(ind, plotDF['KAMA_20'], 'g-')
     bottom.bar(ind, plotDF['Volume'], label='Volume')
     plt.subplots_adjust(hspace=0.05)
@@ -332,6 +342,7 @@ if __name__ == "__main__":
 
         
     dataSet = taLibOS.mesa_AMA(dataSet, 0.9, 0.1)
+    dataSet = taLibOS.delta_MESA_AMA(dataSet, 0.9, 0.1)
     dataSet = taLibOS.exp_MA(dataSet, 30)
     dataSet = taLibOS.inst_Trendline(dataSet)
 
@@ -377,8 +388,8 @@ if __name__ == "__main__":
     dataSet = taLibOS.mid_price(dataSet,30)
     dataSet = taLibOS.pSAR(dataSet, 30)
     dataSet = taLibOS.simple_MA(dataSet, 30)
-    dataSet = taLibOS.triple_MA(dataSet, 30)
-    dataSet = taLibOS.tri_ma(dataSet, 30)
+    dataSet = taLibOS.triple_EMA(dataSet, 30)
+    dataSet = taLibOS.triangMA(dataSet, 30)
     dataSet = taLibOS.weighted_MA(dataSet, 30)
 
     startDate = "2015-02-01"

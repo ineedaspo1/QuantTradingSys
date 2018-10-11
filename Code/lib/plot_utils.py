@@ -42,12 +42,16 @@ class PlotUtility:
         ax.minorticks_on()
         ax.tick_params(axis='y',which='minor',bottom='off')
         
-    def plot_v2x(self, data1, data2, title):
+    def plot_v2x(self, plotDataSet, title):
         numSubPlots = 2
         fig, axes = plt.subplots(numSubPlots, ncols=1, figsize=(numSubPlots*6,8), sharex=True)
+        buys = plotDataSet.ix[(plotDataSet['beLong'] > 0)]
+        sells = plotDataSet.ix[(plotDataSet['beLong'] < 0)]
         
-        axes[0].plot(data1)
-        axes[1].plot(data2, color='red', alpha =0.8)
+        axes[0].plot(plotDataSet.index, plotDataSet['Close'])
+        axes[0].plot(buys.index, plotDataSet.ix[buys.index]['Close'], '^', markersize=10, color='g', label='Buy')
+        axes[0].plot(sells.index, plotDataSet.ix[sells.index]['Close'], 'v', markersize=10, color='r', label='Sell')
+        axes[1].plot(plotDataSet['beLong'], color='red', alpha =0.8)
         plt.subplots_adjust(hspace=0.05)
         fig.suptitle(title)
         fig.autofmt_xdate()
@@ -68,7 +72,7 @@ class PlotUtility:
     
     def plot_beLongs(self, title, issue, df, start_date, end_date):
         plotTitle = title + ": " + issue + ", " + str(start_date) + " to " + str(end_date)
-        self.plot_v2x(df['Pri'], df['beLong'], plotTitle)
+        self.plot_v2x(df, plotTitle)
         self.histogram(df['beLong'], x_label="beLong signal", y_label="Frequency", title = "beLong distribution for " + issue)
         
     def price_Ind_Vol_Plot(self, plot_dict, df):
@@ -100,7 +104,7 @@ class PlotUtility:
         for n in range(1,total_rows+1):
             if n==1:
                 ax = fig.add_subplot(total_rows,Cols,1)
-                ax.plot(ind, df['Pri'], label=issue)
+                ax.plot(ind, df['Close'], label=issue)
             elif n < subplot_len+2:
                 ax = fig.add_subplot(total_rows,Cols,n,sharex=ax)
                 ax.plot(ind, df[plot_dict['Plot_Vars'][cnt]], label=plot_dict['Plot_Vars'][cnt])
@@ -121,9 +125,9 @@ class PlotUtility:
 
 if __name__ == "__main__":
     plotIt = PlotUtility()
-    dataLoadStartDate = "2014-04-01"
-    dataLoadEndDate = "2018-04-01"
-    issue = "TLT"
+    dataLoadStartDate = "2008-02-01"
+    dataLoadEndDate = "2010-04-01"
+    issue = "XLV"
     
     dSet = DataRetrieve()
     dataSet = dSet.read_issue_data(issue)
@@ -137,10 +141,10 @@ if __name__ == "__main__":
                            )
     
     # Plot price and indicators
-    startDate = "2015-02-01"
-    endDate = "2015-06-30"
+    startDate = "2008-02-01"
+    endDate = "2010-04-01"
 
-    plotDataSet = dataSet[startDate:endDate]
+    plotDataSet = dataSet[startDate:endDate].copy()
 
     # Set up plot dictionary
     plot_dict = {}
@@ -151,13 +155,11 @@ if __name__ == "__main__":
     plotIt.price_Ind_Vol_Plot(plot_dict, plotDataSet)
     
     plotTitle = "Closing price for " + issue + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
-    plotIt.plot_v1(plotDataSet['Pri'], plotTitle)
+    plotIt.plot_v1(plotDataSet['Close'], plotTitle)
 
         
     plotTitle = "beLong signal for " + issue + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
-    plotIt.plot_v1(
-            plotDataSet['beLong'], 
-            plotTitle)
+    plotIt.plot_v1(plotDataSet['beLong'], plotTitle)
     
     plotIt.histogram(
             plotDataSet['beLong'], 
@@ -166,9 +168,7 @@ if __name__ == "__main__":
             title = "beLong distribution for " + issue)
     
     plotTitle = issue + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
-    plotIt.plot_v2x(
-            plotDataSet['Pri'], 
-            plotDataSet['beLong'], 
-            plotTitle)
+    plotIt.plot_v2x(plotDataSet, plotTitle)
     
     plotIt.plot_beLongs("Plot of beLongs", issue, plotDataSet, dataLoadStartDate, dataLoadEndDate)
+    

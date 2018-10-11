@@ -68,6 +68,7 @@ if __name__ == "__main__":
     candle_ind = CandleIndicators()
     dSet = DataRetrieve()
     taLibMomSt = TALibMomentumStudies()
+    transf = Transformers()
     
     feature_dict = {}
     
@@ -84,53 +85,32 @@ if __name__ == "__main__":
     ######################
     predictor_vars = 'Price and percReturn lags'
      # set lag on Close (Pri)
-    transf = Transformers()
-    lag_var = 'Pri'
-    lags = 4
-    dataSet, feature_dict = transf.add_lag(dataSet, lag_var, lags, feature_dict)
+#    transf = Transformers()
+#    lag_var = 'Close'
+#    lags = 4
+#    dataSet = transf.add_lag(dataSet, lag_var, lags)
     
     # set % return variables and lags
-    dataSet["percReturn"] = dataSet["Pri"].pct_change()*100
+    dataSet["percReturn"] = dataSet["Close"].pct_change()*100
     lag_var = 'percReturn'
     lags = 5    
-    dataSet, feature_dict = transf.add_lag(dataSet, lag_var, lags, feature_dict) 
+    dataSet = transf.add_lag(dataSet, lag_var, lags) 
     
-    days_to_plot = 4
-    for i in range(1, days_to_plot + 1):
-        num_days = i
-        dataSet, feature_dict = candle_ind.higher_close(dataSet,
-                                                        num_days,
-                                                        feature_dict
-                                                        )
-        dataSet, feature_dict = candle_ind.lower_close(dataSet,
-                                                       num_days,
-                                                       feature_dict
-                                                       )
-    dataSet['RSI_20'], feature_dict = taLibMomSt.RSI(dataSet.Pri.values,
-                                                     20,
-                                                     feature_dict
-                                                     )
-    dataSet['PPO'], feature_dict = taLibMomSt.PPO(dataSet.Pri.values,
-                                                  10,
-                                                  24,
-                                                  feature_dict
-                                                  )
-    dataSet['CMO_20'], feature_dict = taLibMomSt.CMO(dataSet.Pri.values,
-                                                     20,
-                                                     feature_dict
-                                                     )
-    dataSet['CCI_20'], feature_dict = taLibMomSt.CCI(dataSet.High.values,
-                                                     dataSet.Low.values,
-                                                     dataSet.Pri.values,
-                                                     20,
-                                                     feature_dict
-                                                     )
+#    days_to_plot = 4
+#    for i in range(1, days_to_plot + 1):
+#        num_days = i
+#        dataSet = candle_ind.higher_close(dataSet, num_days)
+#        dataSet = candle_ind.lower_close(dataSet, num_days)
+    #dataSet = taLibMomSt.RSI(dataSet, 20)
+    dataSet = taLibMomSt.PPO(dataSet, 10, 24)
+#    dataSet = taLibMomSt.CMO(dataSet, 20)
+    dataSet = taLibMomSt.CCI(dataSet, 20)
     
     # Set IS-OOS parameters
     pivotDate = datetime.date(2018, 4, 2)
-    is_oos_ratio = 3
-    oos_months = 4
-    segments = 4
+    is_oos_ratio = 4
+    oos_months = 3
+    segments = 3
     
     isOosDates = timeUtil.is_oos_data_split(issue, pivotDate, is_oos_ratio, oos_months, segments)
     dataLoadStartDate = isOosDates[0]
@@ -189,14 +169,14 @@ if __name__ == "__main__":
         print (be_long_count)
         print ("out of ", nrows)
         
-        mmData = mmData.drop(['Open','High','Low','Close', 'gainAhead', 'Symbol', 'percReturn'],axis=1)
+        mmData = mmData.drop(['Open','High','Low', 'gainAhead', 'Symbol', 'percReturn'],axis=1)
         
         plotTitle = issue + ", " + str(modelStartDate) + " to " + str(modelEndDate)
-        plotIt.plot_v2x(mmData['Pri'], mmData['beLong'], plotTitle)
+        plotIt.plot_v2x(mmData, plotTitle)
         plotIt.histogram(mmData['beLong'], x_label="beLong signal", y_label="Frequency", title = "beLong distribution for " + issue)        
         plt.show(block=False)
         
-        mmData = mmData.drop(['Pri','Date'],axis=1)
+        mmData = mmData.drop(['Close','Date'],axis=1)
         
         datay = mmData['beLong']
         nrows = datay.shape[0]
@@ -237,8 +217,9 @@ if __name__ == "__main__":
         
         ######################
         # ML section
-        iterations = 50
-        
+        iterations = 5
+#        from sklearn.svm import SVC 
+#        model = SVC(kernel='linear')
         model = RandomForestClassifier(n_jobs=-1, random_state=55, min_samples_split=10 , n_estimators=500, max_features = 'auto', min_samples_leaf = 10, oob_score = 'TRUE')
         
         #  Make 'iterations' index vectors for the train-test split

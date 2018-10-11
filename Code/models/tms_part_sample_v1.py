@@ -11,7 +11,6 @@ sys.path.append('../utilities')
 
 from plot_utils import *
 from retrieve_data import *
-from indicators import *
 from transformers import *
 from time_utils import *
 
@@ -32,14 +31,14 @@ if __name__ == "__main__":
     plotIt = PlotUtility()
     timeUtil = TimeUtility()
     ct = ComputeTarget()
- 
+    dSet = DataRetrieve()
     #set beLong level
     beLongThreshold = 0.000
     
-    issue = "EWH"
+    issue = "TLT"
     
     #pivotDate = datetime.date(2018, 4, 2)
-    nextAnalysisDate = datetime.date(2018, 7, 1)
+    nextAnalysisDate = datetime.date(2018, 4, 2)
     is_oos_ratio = 4
     oos_months = 10
     segments = 1
@@ -66,7 +65,7 @@ if __name__ == "__main__":
     file_title = issue + "_in_sample_" + modelname + ".pkl"
     file_name = os.path.join(r'C:\Users\kruegkj\Documents\GitHub\QuantTradingSys\Code\models\model_data', file_title)
     dataSet = pd.read_pickle(file_name)
-    dataSet.set_index('Date', inplace=True)
+    #dataSet.set_index('Date', inplace=True)
     
     # retrieve model IS
     print("====Retrieving model====")
@@ -76,8 +75,7 @@ if __name__ == "__main__":
     model = pickle.load(open(file_name, 'rb'))
     
     
-    df2 = pd.date_range(start=modelStartDate, end=modelEndDate, freq=us_cal)
-    valData = dataSet.reindex(df2)
+    valData = dSet.set_date_range(dataSet, modelStartDate, modelEndDate)
     tradesData = valData
         
     nrows = valData.shape[0]
@@ -94,7 +92,7 @@ if __name__ == "__main__":
       title = "beLong distribution for " + issue)        
     plt.show(block=False)
     
-    valModelData = valData.drop(['Pri','beLong','gainAhead'],axis=1)
+    valModelData = valData.drop(['Pri','beLong','gainAhead', 'Date', 'percReturn'],axis=1)
     
     valRows = valModelData.shape[0]
     print("There are %i data points" % valRows)

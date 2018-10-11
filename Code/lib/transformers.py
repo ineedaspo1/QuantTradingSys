@@ -23,8 +23,11 @@ class Transformers:
                 Return is a numpy array with values as z-scores
         """
         col_name = str(ind) + '_zScore_' + str(lb)
+        feature_dict[current_feature['Latest']] = 'Drop'
         current_feature['Latest'] = col_name
         feature_dict[col_name] = 'Keep'
+        
+        
         
         nrows = df.shape[0]
         st = np.zeros(nrows)
@@ -83,8 +86,11 @@ class Transformers:
         """
         col_name = str(col) + '_Centered'
         feature_dict[col_name] = 'Keep'
+        feature_dict[current_feature['Latest']] = 'Drop'
         current_feature['Latest'] = col_name
         df[col_name] = df[col]
+        
+        
         if type == 'median':
             rm = df[col].rolling(window=lb, center=False).median()
             df[col_name] = df[col] - rm
@@ -108,7 +114,9 @@ class Transformers:
         """
         col_name = str(col) + '_Scaled'
         feature_dict[col_name] = 'Keep'
+        feature_dict[current_feature['Latest']] = 'Drop'
         current_feature['Latest'] = col_name
+        
         
         df = self.clean_dataset(df)
         
@@ -140,16 +148,17 @@ class Transformers:
                 linear: non-linear or linear scaling
             Returns:
                 dataSet: Dataset with new feature generated.
-                feature_dict: Append entry with colname
         """
         temp =[]
         new_colname = str(colname) + '_Normalized'
         feature_dict[new_colname] = 'Keep'
+        feature_dict[current_feature['Latest']] = 'Drop'
         current_feature['Latest'] = new_colname
-        
+        # clean NaN's
         dataSet = self.clean_dataset(dataSet)
         
         df = dataSet[colname]
+        #print(df)
         for i in range(len(df))[::-1]:
             if i  >= n:
                 # there will be a traveling norm until we reach the initial n
@@ -159,15 +168,16 @@ class Transformers:
                 F75 =  df[i-n:i].quantile(0.75)
                 F25 =  df[i-n:i].quantile(0.25)
             if linear == True and mode == 'total':
-                 v = 50 * ((df.iloc[i] - F50) / (F75 - F25)) - 50
+                 v = 0.5 * ((df.iloc[i] - F50) / (F75 - F25)) - 0.5
             elif linear == True and mode == 'scale':
-                 v =  25 * df.iloc[i] / (F75 - F25) -50
+                 v =  0.25 * df.iloc[i] / (F75 - F25) - 0.5
             elif linear == False and mode == 'scale':
-                 v = 100 * norm.cdf(0.5 * df.iloc[i] / (F75 - F25)) - 50
+                 v = 0.5 * norm.cdf(0.5 * df.iloc[i] / (F75 - F25)) - 0.5
             else:
                 # even if strange values are given, it will perform full
                 # normalization with compression as default
-                v = norm.cdf(50*(df.iloc[i]-F50)/(F75-F25))-50
+                v = norm.cdf(0.5*(df.iloc[i]-F50)/(F75-F25))-0.5
+            #print (v)
             temp.append(v)
         dataSet[new_colname] = temp[::-1]
         return  dataSet
@@ -266,7 +276,7 @@ if __name__ == "__main__":
 
     dataSet = transf.centering(dataSet, col_name, 14)
 
-    dataSet = transf.normalizer(dataSet, col_name, 200, mode='scale',
+    dataSet = transf.normalizer(dataSet, col_name, 100, mode='total',
                                 linear=False
                                 )
 

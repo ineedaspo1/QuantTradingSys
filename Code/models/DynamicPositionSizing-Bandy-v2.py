@@ -51,11 +51,11 @@ import datetime as dt
 from pandas.core import datetools
 import time
 
-issue = 'EWH'
+issue = 'TLT'
 #  Set the path for the csv file
 #path = 'oos_equity_eval_EWH_test1.csv'
 # latest RT plus OOS
-path = 'EWH_tms1_2018-04-09.csv'
+path = 'TLT_tms1_2018-04-02.csv'
 
 #  Use pandas to read the csv file, 
 #  creating a pandas dataFrame

@@ -5,22 +5,59 @@ Created on Fri Sep 14 14:24:33 2018
 feature_generator.py
 """
 import numpy as np
-#from config import *
+from config import current_feature, feature_dict
 import functools
-
+import pickle
+from retrieve_data import DataRetrieve
 
 class FeatureGenerator:
-    pass
-
+    def get_from_dict(self, dataDict, mapList):
+        """Iterate nested dictionary"""
+        try:
+            return functools.reduce(dict.get, mapList, dataDict)
+        except TypeError:
+            return None  # or some other default value
+        
+    def generate_features(self, df, input_dict):
+        funcDict = DataRetrieve.load_obj(self, 'func_dict')
+        for key in input_dict.keys():
+            print(key)
+            path = [key, 'fname']
+            print('fname: ', self.get_from_dict(input_dict, path))
+            func_name = self.get_from_dict(input_dict, path)
+            
+            path = [key, 'params']
+            print('params: ', self.get_from_dict(input_dict, path))
+            params = self.get_from_dict(input_dict, path)  
+            df = funcDict[func_name](df, *params)
+            print("Current feature: ", current_feature['Latest'])
+            
+            path = [key, 'transform']
+            print('transform: ', self.get_from_dict(input_dict, path), '\n')
+            do_transform = self.get_from_dict(input_dict, path)
+            
+            if do_transform:
+                #print('!!!!', do_transform[0], )
+                pass_params = (do_transform[1::])
+                #print("pass params" , pass_params)
+                #print("Current feature: ", current_feature['Latest'])
+                df = funcDict[do_transform[0]](df,
+                                               current_feature['Latest'],
+                                               *pass_params
+                                               )
+                #print("Current feature: ", current_feature['Latest'])
+        return df
+    
 if __name__ == "__main__":
     from plot_utils import *
     from retrieve_data import *
     from ta_momentum_studies import *
     from ta_volume_studies import *
-    from ta_volume_studies import *
     from ta_volatility_studies import *
+    from ta_overlap_studies import *
     from transformers import *
     from oscillator_studies import *
+    from candle_indicators import *
     from config import current_feature, feature_dict
     
     dataLoadStartDate = "2014-04-01"
@@ -33,36 +70,57 @@ if __name__ == "__main__":
     oscSt = OscialltorStudies()
     vStud = TALibVolatilityStudies()
     feat_gen = FeatureGenerator()
+    candle_ind = CandleIndicators()
+    taLibVolSt = TALibVolumeStudies()
+    custVolSt = CustVolumeStudies()
+    taLibOS = TALibOverlapStudies()
+    featureGen = FeatureGenerator()
+    plotIt = PlotUtility()
     
     # move this dict to be read from file
-    funcDict = {
-            "RSI" : taLibMomSt.RSI,
-            "PPO" : taLibMomSt.PPO,
-            "CMO" : taLibMomSt.CMO,
-            "CCI" : taLibMomSt.CCI,
-            "ROC" : taLibMomSt.rate_OfChg,
-            "UltimateOscillator": taLibMomSt.UltOsc,
-            "Normalized": transf.normalizer,
-            "Zscore" : transf.zScore,
-            "Scaler" : transf.scaler,
-            "Center" : transf.centering,
-            "Lag" : transf.add_lag,
-            "DetrendPO" : oscSt.detrend_PO,
-            "ATR" : vStud.ATR,
-            "NATR" : vStud.NATR,
-            "ATRRatio" : vStud.ATR_Ratio,
-            "DeltaATRRatio" : vStud.delta_ATR_Ratio,
-            "BBWidth" : vStud.BBWidth
-            }
-    
-    def get_from_dict(dataDict, mapList):
-        """Iterate nested dictionary"""
-        try:
-            return functools.reduce(dict.get, mapList, dataDict)
-        except TypeError:
-            return None  # or some other default value
-
+#    functionDict = {
+#            "RSI"               : taLibMomSt.RSI,
+#            "PPO"               : taLibMomSt.PPO,
+#            "CMO"               : taLibMomSt.CMO,
+#            "CCI"               : taLibMomSt.CCI,
+#            "ROC"               : taLibMomSt.rate_OfChg,
+#            "UltimateOscillator": taLibMomSt.UltOsc,
+#            "Normalized"        : transf.normalizer,
+#            "Zscore"            : transf.zScore,
+#            "Scaler"            : transf.scaler,
+#            "Center"            : transf.centering,
+#            "Lag"               : transf.add_lag,
+#            "DetrendPO"         : oscSt.detrend_PO,
+#            "ATR"               : vStud.ATR,
+#            "NATR"              : vStud.NATR,
+#            "ATRRatio"          : vStud.ATR_Ratio,
+#            "DeltaATRRatio"     : vStud.delta_ATR_Ratio,
+#            "BBWidth"           : vStud.BBWidth,
+#            "HigherClose"       : candle_ind.higher_close,
+#            "LowerClose"        : candle_ind.lower_close,
+#            "ChaikinAD"         : taLibVolSt.ChaikinAD,
+#            "ChaikinADOSC"      : taLibVolSt.ChaikinADOSC,
+#            "OBV"               : taLibVolSt.OBV,
+#            "MFI"               : taLibVolSt.MFI,
+#            "ease_OfMvmnt"      : custVolSt.ease_OfMvmnt,
+#            "exp_MA"            : taLibOS.exp_MA,
+#            "simple_MA"         : taLibOS.simple_MA,
+#            "weighted_MA"       : taLibOS.weighted_MA,
+#            "triple_EMA"        : taLibOS.triple_EMA,
+#            "triangMA"          : taLibOS.triangMA,
+#            "dblEMA"            : taLibOS.dblEMA,
+#            "kaufman_AMA"       : taLibOS.kaufman_AMA,
+#            "delta_MESA_AMA"    : taLibOS.delta_MESA_AMA,
+#            "inst_Trendline"    : taLibOS.inst_Trendline,
+#            "mid_point"         : taLibOS.mid_point,
+#            "mid_price"         : taLibOS.mid_price,
+#            "pSAR"              : taLibOS.pSAR
+#            }
+        
     dSet = DataRetrieve()
+#    dSet.save_obj(functionDict, 'func_dict')
+    #funcDict = dSet.load_obj('func_dict')
+    
     df = dSet.read_issue_data(issue)
     df = dSet.set_date_range(df, dataLoadStartDate,dataLoadEndDate)
     
@@ -136,43 +194,122 @@ if __name__ == "__main__":
                   'f16': 
                   {'fname' : 'BBWidth', 
                    'params' : [10]
+                   },
+                  'f17': 
+                  {'fname' : 'HigherClose', 
+                   'params' : [4]
+                   },
+                  'f18': 
+                  {'fname' : 'LowerClose', 
+                   'params' : [4]
+                   },
+                  'f19': 
+                  {'fname' : 'ChaikinAD', 
+                   'params' : []
+                   },
+                  'f20': 
+                  {'fname' : 'ChaikinADOSC', 
+                   'params' : [4, 10],
+                   'transform' : ['Normalized', 100]
+                   },
+                  'f21': 
+                  {'fname' : 'OBV', 
+                   'params' : [],
+                   'transform' : ['Zscore', 3]
+                   },
+                  'f22': 
+                  {'fname' : 'MFI', 
+                   'params' : [14],
+                   'transform' : ['Zscore', 3]
+                   },
+                  'f23': 
+                  {'fname' : 'ease_OfMvmnt', 
+                   'params' : [14],
+                   'transform' : ['Zscore', 3]
+                   },
+                  'f24': 
+                  {'fname' : 'exp_MA', 
+                   'params' : [4]
+                   },
+                  'f25': 
+                  {'fname' : 'simple_MA', 
+                   'params' : [4]
+                   },
+                  'f26': 
+                  {'fname' : 'weighted_MA', 
+                   'params' : [4]
+                   },
+                  'f27': 
+                  {'fname' : 'triple_EMA', 
+                   'params' : [4]
+                   },
+                  'f28': 
+                  {'fname' : 'triangMA', 
+                   'params' : [4]
+                   },
+                  'f29': 
+                  {'fname' : 'dblEMA', 
+                   'params' : [4]
+                   },
+                  'f30': 
+                  {'fname' : 'kaufman_AMA', 
+                   'params' : [4]
+                   },
+                  'f31': 
+                  {'fname' : 'delta_MESA_AMA', 
+                   'params' : [0.9, 0.1],
+                   'transform' : ['Normalized', 20]
+                   },
+                  'f32': 
+                  {'fname' : 'inst_Trendline', 
+                   'params' : []
+                   },
+                  'f33': 
+                  {'fname' : 'mid_point', 
+                   'params' : [4]
+                   },
+                  'f34': 
+                  {'fname' : 'mid_price', 
+                   'params' : [4]
+                   },
+                  'f35': 
+                  {'fname' : 'pSAR', 
+                   'params' : [4]
                    }
                  }
                   
-    for key in input_dict.keys():
-        #print(key)
-        path = [key, 'fname']
-        print('fname: ', get_from_dict(input_dict, path))
-        func_name = get_from_dict(input_dict, path)
-        
-        path = [key, 'params']
-        print('params: ', get_from_dict(input_dict, path))
-        params = get_from_dict(input_dict, path)  
-        df = funcDict[func_name](df, *params)
-        print("Current feature: ", current_feature['Latest'])
-        
-        path = [key, 'transform']
-        #print('transform: ', get_from_dict(input_dict, path), '\n')
-        do_transform = get_from_dict(input_dict, path)
-        
-        if do_transform:
-            #print('!!!!', do_transform[0], )
-            pass_params = (do_transform[1::])
-            #print("pass params" , pass_params)
-            #print("Current feature: ", current_feature['Latest'])
-            df = funcDict[do_transform[0]](df,
-                                           current_feature['Latest'],
-                                           *pass_params
-                                           )
-            #print("Current feature: ", current_feature['Latest'])
+    df = featureGen.generate_features(df, input_dict)
             
     # Plot price and indicators
     startDate = "2015-02-01"
     endDate = "2015-06-30"
 
     plotDataSet = df[startDate:endDate]
-    plot_dict = {}
-    plot_dict['Issue'] = issue
-    plot_dict['Plot_Vars'] = list(feature_dict.keys())
-    plot_dict['Volume'] = 'Yes'
-    plotIt.price_Ind_Vol_Plot(plot_dict, plotDataSet)
+#    plot_dict = {}
+#    plot_dict['Issue'] = issue
+#    plot_dict['Plot_Vars'] = list(feature_dict.keys())
+#    plot_dict['Volume'] = 'Yes'
+#    plotIt.price_Ind_Vol_Plot(plot_dict, plotDataSet)
+    
+    # Drop columns where value is 'Drop'
+    col_vals=['Open', 'High', 'Close', 'Low']
+    corrDataSet = dSet.drop_columns(plotDataSet, col_vals)
+    col_vals = [k for k,v in feature_dict.items() if v == 'Drop']
+    corrDataSet = dSet.drop_columns(corrDataSet, col_vals)
+    
+    def correlation_matrix(df,size=10):
+        from matplotlib import pyplot as plt
+        from matplotlib import cm as cm
+        fig = plt.figure(figsize=(size, size))
+        ax1 = fig.add_subplot(111)
+        cmap = cm.get_cmap('jet', 30)
+        corr = df.corr()
+        cax = ax1.imshow(corr, interpolation="nearest", cmap=cmap)
+        ax1.grid(True)
+        plt.title('Feature Correlation')
+        plt.xticks(range(len(corr.columns)), corr.columns, rotation='vertical');
+        plt.yticks(range(len(corr.columns)), corr.columns);
+        # Add colorbar, make sure to specify tick locations to match desired ticklabels
+        fig.colorbar(cax, ticks=[-1, -.5, 0, .5 ,1])
+        plt.show()
+    correlation_matrix(corrDataSet)

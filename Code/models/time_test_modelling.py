@@ -55,7 +55,7 @@ if __name__ == "__main__":
     dataSet = ct.setTarget(dataSet, "Long", beLongThreshold)
     
     for i in range(segments):
-        modelData = timeUtil.trim_dates(is_start_date, is_end_date, dataSet)
+        modelData = dSet.set_date_range(dataSet, is_start_date, is_end_date)
         print ("IN SAMPLE")
         print_beLongs(modelData)
         plotIt.plot_beLongs("In Sample", issue, modelData, is_start_date, is_end_date)
@@ -63,7 +63,7 @@ if __name__ == "__main__":
         is_end_date = is_end_date + relativedelta(months=inSampleMonths) - BDay(1)
         
         # OOS
-        modelData = timeUtil.trim_dates(oos_start_date, oos_end_date, dataSet)
+        modelData = dSet.set_date_range(dataSet, oos_start_date, oos_end_date)
         print ("OUT OF SAMPLE")
         print_beLongs(modelData)
         plotIt.plot_beLongs("Out of Sample", issue, modelData, oos_start_date, oos_end_date)

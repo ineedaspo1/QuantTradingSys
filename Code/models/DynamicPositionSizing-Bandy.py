@@ -45,9 +45,9 @@ import datetime as dt
 from pandas.core import datetools
 import time
 
-issue = 'XLE'
+issue = 'TLT'
 #  Set the path for the csv file
-path = 'oos_equity_eval_XLE_test1.csv'
+path = 'TLT_tms1_2018-04-02.csv'
 
 #  Use pandas to read the csv file, 
 #  creating a pandas dataFrame
@@ -99,9 +99,9 @@ sst['CAR25'] = 0.0
 # create a range of times
 #  start date is inclusive
 #start = dt.datetime(2010,1,4)
-start = dt.datetime(2016,2,2)
+start = dt.datetime(2017,8,2)
 #  end date is inclusive
-end = dt.datetime(2018,2,2)
+end = dt.datetime(2018,4,2)
 updateInterval = 1
 
 forecastHorizon = 252

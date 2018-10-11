@@ -13,9 +13,9 @@ sys.path.append('../utilities')
 
 from plot_utils import *
 from retrieve_data import *
-from indicators import *
 from transformers import *
-#from stat_tests import *
+from feature_generator import *
+from config import current_feature, feature_dict
 
 # Import the Time Series library
 #import statsmodels.tsa.stattools as ts
@@ -33,7 +33,6 @@ from pandas.tseries.offsets import BDay
 #import matplotlib.ticker as ticker
 
 from sklearn.model_selection import StratifiedShuffleSplit
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import precision_score
@@ -42,12 +41,16 @@ from sklearn.metrics import f1_score
 
 import os.path
 
-issue = "XLE"
+dSet = DataRetrieve()
+transf = Transformers()
+plotIt = PlotUtility()
+featureGen = FeatureGenerator()  
 
-us_cal = CustomBusinessDay(calendar=USFederalHolidayCalendar())
-pivotDate = datetime.date(2018, 2, 2)
+issue = "XLV"
+
+pivotDate = datetime.date(2012, 1, 1)
 inSampleOutOfSampleRatio = 2
-outOfSampleMonths = 12
+outOfSampleMonths = 6
 inSampleMonths = inSampleOutOfSampleRatio * outOfSampleMonths
 print("inSampleMonths: " + str(inSampleMonths))
 segments = 1
@@ -62,7 +65,6 @@ print("In Sample Start  Date: ", inSampleStartDate)
 print("Out Of Sample Start  Date: ", ooSampleStartDate)
 print("Pivot Date: ", pivotDate)
 
-dSet = DataRetrieve()
 dataSet = dSet.read_issue_data(issue)   
 dataSet = dSet.set_date_range(dataSet, dataLoadStartDate,pivotDate)
 
@@ -71,60 +73,228 @@ print(issue)
 nrows = dataSet.shape[0]
 print ("nrows: ", nrows)
 
-addIndic1 = Indicators()
-ind_list = [("RSI", 1.5),("ROC",2),("DPO",3),("ATR", 3)]
-dataSet = addIndic1.add_indicators(dataSet, ind_list)
- 
-zScore_lookback = 3
-transf = Transformers()
-transfList = ['Pri_ROC','Pri_DPO','Pri_ATR']
-for i in transfList:
-    dataSet = transf.zScore_transform(dataSet, zScore_lookback, i)
-    
-lags = 2
-transfList = ['Pri_ROC_zScore','Pri_DPO_zScore','Pri_ATR_zScore']
-for i in transfList:
-    dataSet = transf.add_lag(dataSet, i, lags)
+input_dict = {} # initialize 
+#input_dict = {'f1': 
+#              {'fname' : 'RSI', 
+#               'params' : [10]
+#               },
+#              'f2': 
+#              {'fname' : 'UltimateOscillator', 
+#               'params' : [10 , 20, 30]
+#               },
+#              'f3': 
+#              {'fname' : 'UltimateOscillator',
+#               'params' : [],
+#               'transform' : ['Normalized', 100]
+#               },
+#              'f4': 
+#              {'fname' : 'RSI', 
+#               'params' : [10],
+#               'transform' : ['Zscore', 3]
+#               },
+#              'f5': 
+#              {'fname' : 'RSI', 
+#               'params' : [3],
+#               'transform' : ['Scaler', 'robust']
+#               },
+#              'f6': 
+#              {'fname' : 'RSI', 
+#               'params' : [10],
+#               'transform' : ['Center', 3]
+#               },
+#              'f7': 
+#              {'fname' : 'Lag', 
+#               'params' : ['Close', 3]
+#               },
+#              'f8': 
+#              {'fname' : 'PPO', 
+#               'params' : [12, 26]
+#               },
+#              'f9': 
+#              {'fname' : 'CMO', 
+#               'params' : [10]
+#               },
+#              'f10': 
+#              {'fname' : 'CCI', 
+#               'params' : [10]
+#               },
+#              'f11': 
+#              {'fname' : 'ROC', 
+#               'params' : [10]
+#               },
+#              'f12': 
+#              {'fname' : 'ATR', 
+#               'params' : [10]
+#               },
+#              'f13': 
+#              {'fname' : 'NATR', 
+#               'params' : [10]
+#               },
+#              'f14': 
+#              {'fname' : 'ATRRatio', 
+#               'params' : [10, 30]
+#               },
+#              'f15': 
+#              {'fname' : 'DeltaATRRatio', 
+#               'params' : [10, 50]
+#               },
+#              'f16': 
+#              {'fname' : 'BBWidth', 
+#               'params' : [10]
+#               },
+#              'f17': 
+#              {'fname' : 'HigherClose', 
+#               'params' : [4]
+#               },
+#              'f18': 
+#              {'fname' : 'LowerClose', 
+#               'params' : [4]
+#               },
+#              'f19': 
+#              {'fname' : 'ChaikinAD', 
+#               'params' : []
+#               },
+#              'f20': 
+#              {'fname' : 'ChaikinADOSC', 
+#               'params' : [4, 10],
+#               'transform' : ['Normalized', 100]
+#               },
+#              'f21': 
+#              {'fname' : 'OBV', 
+#               'params' : [],
+#               'transform' : ['Zscore', 3]
+#               },
+#              'f22': 
+#              {'fname' : 'MFI', 
+#               'params' : [14],
+#               'transform' : ['Zscore', 3]
+#               },
+#              'f23': 
+#              {'fname' : 'ease_OfMvmnt', 
+#               'params' : [14],
+#               'transform' : ['Zscore', 3]
+#               },
+#              'f24': 
+#              {'fname' : 'exp_MA', 
+#               'params' : [4]
+#               },
+#              'f25': 
+#              {'fname' : 'simple_MA', 
+#               'params' : [4]
+#               },
+#              'f26': 
+#              {'fname' : 'weighted_MA', 
+#               'params' : [4]
+#               },
+#              'f27': 
+#              {'fname' : 'triple_EMA', 
+#               'params' : [4]
+#               },
+#              'f28': 
+#              {'fname' : 'triangMA', 
+#               'params' : [4]
+#               },
+#              'f29': 
+#              {'fname' : 'dblEMA', 
+#               'params' : [4]
+#               },
+#              'f30': 
+#              {'fname' : 'kaufman_AMA', 
+#               'params' : [4]
+#               },
+#              'f31': 
+#              {'fname' : 'delta_MESA_AMA', 
+#               'params' : [0.9, 0.1],
+#               'transform' : ['Normalized', 20]
+#               },
+#              'f32': 
+#              {'fname' : 'inst_Trendline', 
+#               'params' : []
+#               },
+#              'f33': 
+#              {'fname' : 'mid_point', 
+#               'params' : [4]
+#               },
+#              'f34': 
+#              {'fname' : 'mid_price', 
+#               'params' : [4]
+#               },
+#              'f35': 
+#              {'fname' : 'pSAR', 
+#               'params' : [4]
+#               }
+#             }
+#input_dict = {'f1': 
+#              {'fname' : 'RSI', 
+#               'params' : [10],
+#               'transform' : ['Scaler', 'robust']
+#               },
+#              'f2': 
+#              {'fname' : 'delta_MESA_AMA', 
+#               'params' : [0.9, 0.1],
+#               'transform' : ['Scaler', 'robust']
+#               }
+#             }
+
+#From Bandy book
+input_dict = {'f1': 
+              {'fname' : 'ATR', 
+               'params' : [5],
+               'transform' : ['Zscore', 10]
+               },
+              'f2': 
+              {'fname' : 'RSI', 
+               'params' : [2],
+               'transform' : ['Scaler', 'robust']
+               },
+              'f3': 
+              {'fname' : 'DeltaATRRatio', 
+               'params' : [2, 10],
+               'transform' : ['Scaler', 'robust']
+               }
+             }
+              
+                
+df = featureGen.generate_features(dataSet, input_dict) 
+
+predictor_vars = 'Fix this .... to inlcude feature names of model'
+# Put indicators and transforms here
 
 # set lag on Close (Pri)
-transf = Transformers()
-lag_var = 'Pri'
-lags = 6
+#lag_var = 'ATR_5_zScore_10'
+#lags = 3
+#dataSet = transf.add_lag(dataSet, lag_var, lags)
+
+# set lag on Close (Pri)
+lag_var = 'RSI_2_Scaled'
+lags = 4
 dataSet = transf.add_lag(dataSet, lag_var, lags)
 
-# TURN THIS INTO A FUNCTION
-# add Close Higher features
-dataSet['1DayHigherClose'] = dataSet['Pri'] > dataSet['Pri_lag1']
-dataSet['2DayHigherClose'] = dataSet['Pri'] > dataSet['Pri_lag2']
-dataSet['3DayHigherClose'] = dataSet['Pri'] > dataSet['Pri_lag3']
-dataSet['4DayHigherClose'] = dataSet['Pri'] > dataSet['Pri_lag4']
-
-dataSet['1DayLowerClose'] = dataSet['Pri'] < dataSet['Pri_lag1']
-dataSet['2DayLowerClose'] = dataSet['Pri'] < dataSet['Pri_lag2']
-dataSet['3DayLowerClose'] = dataSet['Pri'] < dataSet['Pri_lag3']
-dataSet['4DayLowerClose'] = dataSet['Pri'] < dataSet['Pri_lag4']
-
 # set % return variables and lags
-dataSet["percReturn"] = dataSet["Pri"].pct_change()*100
-lag_var = 'percReturn'
-lags = 4    
-dataSet = transf.add_lag(dataSet, lag_var, lags)    
-
-predictor_vars = 'Price and percReturn lags'
-# Put indicators and transforms here
+#dataSet["percReturn"] = dataSet["Close"].pct_change()*100
+#lag_var = 'percReturn'
+#lags = 3    
+#dataSet = transf.add_lag(dataSet, lag_var, lags)
 
 #set beLong level
 beLongThreshold = 0
 ct = ComputeTarget()
 dataSet = ct.setTarget(dataSet, "Long", beLongThreshold)
 
+col_name = "Volume"
+current_feature['Latest'] = 'Volume'
+dataSet = transf.normalizer(dataSet, col_name, 50, mode='scale', linear=False)
+
+plot_dict = {}
+plot_dict['Issue'] = issue
+plot_dict['Plot_Vars'] = list(feature_dict.keys())
+plot_dict['Volume'] = 'Yes'
+plotIt.price_Ind_Vol_Plot(plot_dict, dataSet)
+
 modelStartDate = inSampleStartDate
 modelEndDate = modelStartDate + relativedelta(months=inSampleMonths)
 
-plotIt = PlotUtility()
-
-df2 = pd.date_range(start=modelStartDate, end=modelEndDate, freq=us_cal)
-mmData = dataSet.reindex(df2)
+mmData = dataSet[modelStartDate:modelEndDate].copy()
 
 nrows = mmData.shape[0]
 print ("beLong counts: ")
@@ -132,15 +302,11 @@ be_long_count = mmData['beLong'].value_counts()
 print (be_long_count)
 print ("out of ", nrows)
 
-mmData = mmData.drop(['Open','High','Low','Close', 'percReturn', 'gainAhead', 'Symbol','Pri_ROC','Pri_DPO','Pri_ATR'],axis=1)
-
 plotTitle = issue + ", " + str(modelStartDate) + " to " + str(modelEndDate)
-plotIt.plot_v2x(mmData['Pri'], mmData['beLong'], plotTitle)
+plotIt.plot_v2x(mmData, plotTitle)
 plotIt.histogram(mmData['beLong'], x_label="beLong signal", y_label="Frequency", 
-  title = "beLong distribution for " + issue)        
+  title = "beLong distribution for " + issue)  
 plt.show(block=False)
-
-mmData = mmData.drop(['Pri'],axis=1)
 
 # Chnage -1 to 0 for log reg
 #mmData.beLong.replace([1, -1], [1, 0], inplace=True)
@@ -148,29 +314,44 @@ datay = mmData['beLong']
 nrows = datay.shape[0]
 print ("nrows beLong: ", nrows)
 
+col_vals = [k for k,v in feature_dict.items() if v == 'Drop']
+to_drop = ['Open','High','Low', 'gainAhead', 'Symbol', 'Close', 'Date', 'beLong']
+for x in to_drop:
+    col_vals.append(x)
+mmData = dSet.drop_columns(mmData, col_vals)
 
-mmData = mmData.drop(['beLong'],axis=1)
+# from correlation study
+#col_vals = ['ATR_5_zScore_10_lag1', 'ATR_5_zScore_10_lag3']
+#mmData = dSet.drop_columns(mmData, col_vals)
+
+#print(list(mmData.columns.values))
+
 dataX = mmData
 
 # get names of features
 names = dataX.columns.values.tolist()
 
-"""
 # correlation plot
-def plot_corr(df,size=10):
-    '''Function plots a graphical correlation matrix for each pair of columns in the dataframe.
+#def correlation_matrix(df,size=10):
+#    from matplotlib import pyplot as plt
+#    from matplotlib import cm as cm
+#    fig = plt.figure(figsize=(size, size))
+#    ax1 = fig.add_subplot(111)
+#    cmap = cm.get_cmap('jet', 30)
+#    corr = df.corr()
+#    cax = ax1.imshow(corr, interpolation="nearest", cmap=cmap)
+#    ax1.grid(True)
+#    plt.title('Feature Correlation')
+#    plt.xticks(range(len(corr.columns)), corr.columns, rotation='vertical');
+#    plt.yticks(range(len(corr.columns)), corr.columns);
+#    # Add colorbar, make sure to specify tick locations to match desired ticklabels
+#    fig.colorbar(cax, ticks=[-1, -.5, 0, .5 ,1])
+#    plt.show()
+#    
+#    c1 = corr.abs().unstack()
+#    print(c1.sort_values(ascending = False))
+#correlation_matrix(dataX)
 
-    Input:
-        df: pandas DataFrame
-        size: vertical and horizontal size of the plot'''
-
-    corr = df.corr()
-    fig, ax = plt.subplots(figsize=(size, size))
-    ax.matshow(corr)
-    plt.xticks(range(len(corr.columns)), corr.columns, rotation='vertical');
-    plt.yticks(range(len(corr.columns)), corr.columns);
-plot_corr(dataX,8)
-"""
 
 #  Copy from pandas dataframe to numpy arrays
 dy = np.zeros_like(datay)
@@ -189,11 +370,20 @@ dX = dataX.values
 ######################
 # ML section
 model_results = []
+iterations = 300
 
-iterations = 100
+from sklearn.neighbors import KNeighborsClassifier 
+model = KNeighborsClassifier(n_neighbors=8) 
+modelname = 'KNN'
 
-model = RandomForestClassifier(n_jobs=-1, random_state=0, min_samples_split=20, n_estimators=500, max_features = 'auto', min_samples_leaf = 20, oob_score = 'TRUE')
-modelname = 'RF'
+#from sklearn.ensemble import RandomForestClassifier
+#model = RandomForestClassifier(n_jobs=-1, random_state=0, min_samples_split=20, n_estimators=500, max_features = 'auto', min_samples_leaf = 20, oob_score = 'TRUE')
+#modelname = 'RF'
+
+#C = 2
+#from sklearn.linear_model import LogisticRegression
+#model = LogisticRegression(C= C)
+#modelname = 'LR'
 
 #  Make 'iterations' index vectors for the train-test split
 sss = StratifiedShuffleSplit(n_splits=iterations,test_size=0.33, random_state=None)
@@ -241,7 +431,7 @@ for train_index,test_index in sss.split(dX,dy):
     recall_scores_oos.append(recall_score(y_test, y_pred_oos))
     f1_scores_oos.append(f1_score(y_test, y_pred_oos))
 
-print (sorted(zip(map(lambda x: round(x, 2), model.feature_importances_), names), reverse=True))
+#print (sorted(zip(map(lambda x: round(x, 2), model.feature_importances_), names), reverse=True))
 
 tpIS = cm_sum_is[1,1]
 fnIS = cm_sum_is[1,0]
@@ -310,13 +500,17 @@ df.to_csv(current_directory+"\\"+filename, encoding='utf-8', index=False)
 """
 Adding validation code
 """
+print("\n\n===================================================")
+print("Walk Forward Validation")
+print("In sample start date: ", modelStartDate)
+
 # Select the date range
 modelStartDate = ooSampleStartDate
 modelEndDate = modelStartDate + relativedelta(months=outOfSampleMonths)
-
-df2 = pd.date_range(start=modelStartDate, end=modelEndDate, freq=us_cal)
-valData = dataSet.reindex(df2)
-tradesData = valData
+print("Out of sample start date: ", modelStartDate)
+print("===================================================\n")
+valData = dataSet[modelStartDate:modelEndDate].copy()
+tradesData = valData.copy()
     
 nrows = valData.shape[0]
 print ("beLong counts: ")
@@ -324,18 +518,17 @@ be_long_count = valData['beLong'].value_counts()
 print (be_long_count)
 print ("out of ", nrows)
 
-valData = valData.drop(['Open','High','Low','Close', 'percReturn', 'Symbol','Pri_ROC','Pri_DPO','Pri_ATR'],axis=1)
-
 plotTitle = issue + ", " + str(modelStartDate) + " to " + str(modelEndDate)
-plotIt.plot_v2x(valData['Pri'], valData['beLong'], plotTitle)
+plotIt.plot_v2x(valData, plotTitle)
 plotIt.histogram(valData['beLong'], x_label="beLong signal", y_label="Frequency", 
   title = "beLong distribution for " + issue)        
 plt.show(block=False)
 
-valModelData = valData.drop(['Pri','beLong','gainAhead'],axis=1)
+valModelData = valData.copy()
+valModelData = dSet.drop_columns(valModelData, col_vals)
 
 valRows = valModelData.shape[0]
-print("There are %i data points" % valRows)
+#print("There are %i data points" % valRows)
 
 # test the validation data
 y_validate = []
@@ -345,26 +538,30 @@ y_validate = model.predict(valModelData)
 bestEstimate = np.zeros(valRows)
 
 # You may need to adjust for the first and / or final entry 
-for i in range(valRows -1):
-    print(valData.gainAhead.iloc[i], y_validate[i])
+
+for i in range(1,valRows -1):
+    print('{0} {1:8.2%} {2:>16}'.format(valData.Date.iloc[i].strftime('%Y-%m-%d'), valData.gainAhead.iloc[i], y_validate[i]))
     if y_validate[i] > 0.0: 
         bestEstimate[i] = valData.gainAhead.iloc[i]
     else:
         bestEstimate[i] = 0.0 
-        
+
 # Create and plot equity curve
 equity = np.zeros(valRows)
 equity[0] = 1.0
 for i in range(1,valRows):
     equity[i] = (1+bestEstimate[i])*equity[i-1]
+print('\n')    
+print('{0:<10s} {1:10} {2:>20s} {3:>10} {4:>10}'.format('Date', 'Gain Ahead', 'Predict (beLong)', 'Best estimate', 'Equity'))
+for i in range(1,valRows-1):
+    print('{0} {1:12.3f} {2:>16} {3:10.2%} {4:14.3f}'.format(valData.Date.iloc[i].strftime('%Y-%m-%d'), valData.gainAhead.iloc[i], y_validate[i],bestEstimate[i],equity[i]))
     
 print("\nTerminal Weatlh: ", equity[valRows-1])
 plt.plot(equity)
 
-print("\n End of Run")
+print("\n ================ End of Run =================")
 
 valData['valBeLong'] = pd.Series(y_validate, index=valData.index)
-
 
 #==========================
 import matplotlib as mpl
@@ -379,7 +576,7 @@ ax2 = plt.subplot2grid((6,1), (4,0), rowspan=1, colspan=1)
 ax3 = plt.subplot2grid((6,1), (5,0), rowspan=1, colspan=1)
 
 ax2.plot(valData['valBeLong'], color='green', alpha =0.6)
-ax1.plot(valData['Pri'])
+ax1.plot(valData['Close'])
 ax3.plot(valData['beLong'], color='purple', alpha =0.6)
 
 ax1.label_outer()
@@ -445,9 +642,9 @@ valData['equityValBeLongSignals'] = pd.Series(equityValBeLongSignals, index=valD
 fig = plt.figure(figsize=(12,8))
 fig.suptitle(issue + ' Portfolio value in Validation')
 ax1 = fig.add_subplot(111)
-ax1.plot(valData.equityBeLongSignals, color='green',label='BeLong')
-ax1.plot(valData.equityAllSignals, color='blue',label='Equity')
-ax1.plot(valData.equityValBeLongSignals, color='purple',label='ValBeLong')
+ax1.plot(valData.equityBeLongSignals, color='green',label='BeLong (Max potential)')
+ax1.plot(valData.equityAllSignals, color='blue',label='Cumulative Equity, All days')
+ax1.plot(valData.equityValBeLongSignals, color='purple',label='Cumulative, Equity, Predict')
 
 ax1.legend(loc='upper left', frameon=True, fontsize=8)
 ax1.label_outer()
@@ -457,48 +654,45 @@ ax1.grid(True, which='major', color='k', linestyle='-', alpha=0.6)
 ax1.grid(True, which='minor', color='r', linestyle='-', alpha=0.2)
 
 ax2 = ax1.twinx()
-ax2.plot(valData.Pri, color='black',alpha=0.6,label='CLOSE',linestyle='--')
+ax2.plot(valData.Close, color='black',alpha=0.6,label='CLOSE',linestyle='--')
 ax2.legend(loc='center left', frameon=True, fontsize=8)
 ax2.label_outer()
 plt.show()
-
+#
+#
+#
+#
 #===================================        
 # Getting sample equity curve
 
-
-
-
 #  Evaluation of signals
-
+print ("\n\n===================================")
 print ("Starting single run")
+print ("===================================")
 
 #  Status variables
-
 ndays = tradesData.shape[0]
 
 #  Local variables for trading system
-
 initialEquity = 100000
 fixedTradeDollars = 10000
 commission = 0.005      #  Dollars per share per trade
 
 #  These are scalar and apply to the current conditions
-
 entryPrice = 0
 exitPrice = 0
 
 #  These have an element for each day loaded
 #  Some will be unnecessary
-
 accountBalance = np.zeros(ndays)
 cash = np.zeros(ndays)
 sharesHeld = np.zeros(ndays)
+predSignal = np.zeros(ndays)
 tradeGain = []
 tradeGainDollars = []
 openTradeEquity = np.zeros(ndays)
 tradeWinsValue = np.zeros(ndays)
 tradeLossesValue = np.zeros(ndays)
-
 
 iTradeDay = 0
 iTradeNumber = 0
@@ -507,6 +701,7 @@ iTradeNumber = 0
 accountBalance[0] = initialEquity
 cash[0] = accountBalance[0]
 sharesHeld[0] = 0
+predSignal[0] = 0
 
 #  Loop over all the days loaded
 for i in range (1,ndays):
@@ -516,12 +711,13 @@ for i in range (1,ndays):
     datesPass = dt.date()>=modelStartDate and dt.date()<=modelEndDate
     if datesPass:
         iTradeDay = iTradeDay + 1
+        
         if sharesHeld[iTradeDay-1] > 0:
             #  In a long position
             if tradesData.valBeLong[i]<0:
                 #  target is -1 -- beFlat 
                 #  Exit -- close the trade
-                exitPrice = tradesData.Pri[i]
+                exitPrice = tradesData.Close[i]
                 grossProceeds = sharesHeld[iTradeDay-1] * exitPrice
                 commissionAmount = sharesHeld[iTradeDay-1] * commission
                 netProceeds = grossProceeds - commissionAmount
@@ -533,6 +729,7 @@ for i in range (1,ndays):
                 #tradeGain[iTradeNumber] = (exitPrice / (1.0 * entryPrice))    
                 tradeGain.append(exitPrice / (1.0 * entryPrice))
                 tradeGainDollars.append(((exitPrice / (1.0 * entryPrice))*fixedTradeDollars)-fixedTradeDollars)
+                predSignal[i] = "-1"
                 
                 pass
             else:
@@ -540,56 +737,108 @@ for i in range (1,ndays):
                 #  Continue long
                 sharesHeld[iTradeDay] = sharesHeld[iTradeDay-1]
                 cash[iTradeDay] = cash[iTradeDay-1]
-                MTMPrice = tradesData.Pri[i]
+                MTMPrice = tradesData.Close[i]
                 openTradeEquity = sharesHeld[iTradeDay] * MTMPrice
                 accountBalance[iTradeDay] = cash[iTradeDay] + openTradeEquity
+                predSignal[i] = "0"
                 pass
         else:
             #  Currently flat
             if tradesData.valBeLong[i]>0:
                 #  target is +1 -- beLong
                 #  Enter a new position
-                entryPrice = tradesData.Pri[i]
+                entryPrice = tradesData.Close[i]
                 sharesHeld[iTradeDay] = int(fixedTradeDollars/(entryPrice+commission))
                 shareCost = sharesHeld[iTradeDay]*(entryPrice+commission)
                 cash[iTradeDay] = cash[iTradeDay-1] - shareCost
                 openTradeEquity = sharesHeld[iTradeDay]*entryPrice
                 accountBalance[iTradeDay] = cash[iTradeDay] + openTradeEquity
+                predSignal[i] = "1"
                 pass
             else:
                 #  target is -1 -- beFlat
                 #  Continue flat
                 cash[iTradeDay] = cash[iTradeDay-1]
-                accountBalance[iTradeDay] = cash[iTradeDay] 
+                accountBalance[iTradeDay] = cash[iTradeDay]
+                predSignal[i] = "0"
                 pass
             
+tradesData['accountBalance'] = pd.Series(accountBalance, index=tradesData.index)
+tradesData['sharesHeld'] = pd.Series(sharesHeld, index=tradesData.index)
+tradesData['cash'] = pd.Series(cash, index=tradesData.index)
+tradesData['predSignal'] = pd.Series(predSignal, index=tradesData.index)
+
+
+fig, ax = plt.subplots(figsize=(14,8))
+buys = tradesData.ix[(tradesData['predSignal'] == 1)]
+sells = tradesData.ix[(tradesData['predSignal'] == -1)]
+
+ax.plot(tradesData.index, tradesData['Close'])
+ax.plot(buys.index, tradesData.ix[buys.index]['Close'], '^', markersize=6, color='g', label='Buy')
+ax.plot(sells.index, tradesData.ix[sells.index]['Close'], 'v', markersize=6, color='r', label='Sell')
+
+plotTitle = "Predictive Buy/Sell signals for " + issue + ", " + str(modelStartDate) + " to " + str(modelEndDate)
+fig.suptitle(plotTitle)
+fig.autofmt_xdate()
+ax.label_outer()
+ax.legend(loc='upper left', frameon=True, fontsize=8)
+ax.yaxis.set_major_formatter(mpl.ticker.StrMethodFormatter('{x:,.0f}'))
+ax.grid(True, which='both')
+ax.xaxis_date()
+ax.autoscale_view()
+ax.grid(b=True, which='major', color='k', linestyle='-', alpha=0.6)
+ax.grid(b=True, which='minor', color='r', linestyle='-', alpha=0.2)
+ax.minorticks_on()
+ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.2f')) 
+plt.show()
+
 #  Format and print results        
- 
+print('Starting equity: %.2f' % initialEquity)
 finalAccountBalance = accountBalance[iTradeDay]
 print ('Final account balance: %.2f' %  finalAccountBalance)
-numberTradeDays = iTradeDay        
+print ("Number of trading days:", iTradeDay)      
 numberTrades = iTradeNumber
 print ("Number of trades:", numberTrades)
 
 from pandas import Series
 
-Sequity = Series(accountBalance[0:numberTradeDays-1])
+Sequity = Series(accountBalance[0:numberTrades-1])
 
-Sequity.plot()
+Sequity.plot(title="Account balance")
 
 tradeWins = sum(1 for x in tradeGain if float(x) >= 1.0)
 tradeLosses = sum(1 for x in tradeGain if float(x) < 1.0 and float(x) > 0)
 print("Wins: ", tradeWins)
 print("Losses: ", tradeLosses)
-print("W/L: ", tradeWins/numberTrades)
+print('W/L: %.2f' % (tradeWins/numberTrades))
 
 tradeWinsValue = sum((x*fixedTradeDollars)-fixedTradeDollars for x in tradeGain if float(x) >= 1.0)
 tradeLossesValue = sum((x*fixedTradeDollars)-fixedTradeDollars for x in tradeGain if float(x) < 1.0 and float(x) > 0)
 print('Total value of Wins:  %.2f' % tradeWinsValue)
+print('Average win: %.2f' % (tradeWinsValue / tradeWins))
 print('Total value of Losses:  %.2f' % tradeLossesValue)
+print('Average loss: %.2f' % (tradeLossesValue/tradeLosses))
 #(Win % x Average Win Size) – (Loss % x Average Loss Size)
 print('Expectancy:  %.2f' % ((tradeWins/numberTrades)*(tradeWinsValue/tradeWins)-(tradeLosses/numberTrades)*(tradeLossesValue/tradeLosses)))
 print("Fixed trade size: ", fixedTradeDollars)
+
+# Expectancy = (AW × PW + AL × PL) ⁄ |AL|
+# AW = average winning trade (excluding maximum win)
+AW =  tradeWinsValue / tradeWins # remove max win
+# PW = <wins> ⁄ NST
+PW = tradeWins / numberTrades
+# AL = average losing trade (negative, excluding scratch losses)
+AL = tradeLossesValue / tradeLosses
+# PL = probability of losing: PL = <non-scratch losses> ⁄ NST 
+PL = tradeLosses / numberTrades
+
+print('AW: %.2f' % AW)
+print('PW: %.2f' % PW)
+print('AL: %.2f' % AL)
+print('PL: %.2f' % PL)
+
+Expectancy = (AW * PW + AL * PL)/ abs(AL)
+print('Expectancy: %.2f' % Expectancy)
 
 # Sharpe ratio...probably not correct math
 #import math
@@ -602,7 +851,7 @@ print("Fixed trade size: ", fixedTradeDollars)
 df_to_save = tradesData[['valBeLong','gainAhead']].copy()
 df_to_save.reset_index(level=df_to_save.index.names, inplace=True)
 df_to_save.columns=['Date','signal','gainAhead']
-print(df_to_save)
+#print(df_to_save)
 
 dirext = issue + '_test1'
 filename = "oos_equity_eval_" + dirext + ".csv" 

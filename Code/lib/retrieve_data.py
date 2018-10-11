@@ -9,7 +9,7 @@ import numpy as np
 import os
 from pandas.tseries.holiday import USFederalHolidayCalendar
 from pandas.tseries.offsets import CustomBusinessDay
-#import pandas_market_calendars as mcal
+import pickle
 
 import datetime as dt
 
@@ -63,7 +63,6 @@ class DataRetrieve:
         issue_name = issue + '.pkl'
         file_name = os.path.join(r'C:\Users\kruegkj\kevinkr OneDrive\OneDrive\IssueData\Equity', issue_name)
         df = self.read_pickle_data(file_name, issue)
-        df['Pri'] = df.Close
         return df
     
     def read_fred_data(self, issue):
@@ -109,6 +108,14 @@ class DataRetrieve:
         df.drop(col_vals, axis =1, inplace=True)
         return df
     
+    def save_obj(self, obj, name ):
+        with open('../obj/'+ name + '.pkl', 'wb+') as f:
+            pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+    
+    def load_obj(self, name):
+        with open('../obj/' + name + '.pkl', 'rb') as f:
+            return pickle.load(f)
+    
 class ComputeTarget:
     
     def setTarget(self, df, direction, beLongThreshold):
@@ -123,7 +130,7 @@ class ComputeTarget:
            To update: Added direction and correct code to identify
                long and short thresholds and correct signal
         """
-        df['gainAhead'] = ComputeTarget.gainAhead(df.Pri)
+        df['gainAhead'] = ComputeTarget.gainAhead(df.Close)
         df['beLong'] = np.where(df.gainAhead>beLongThreshold,1,-1)
         return df
 
@@ -211,10 +218,10 @@ if __name__ == "__main__":
     qtPlot = targetDataSet.ix[testFirstYear:testFinalYear]
     
     plotTitle = "Closing price for " + issue + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
-    plotIt.plot_v1(qtPlot['Pri'], plotTitle)
+    plotIt.plot_v1(qtPlot['Close'], plotTitle)
     
     plotTitle = issue + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
-    plotIt.plot_v2x(qtPlot['Pri'], qtPlot['beLong'], plotTitle)
+    plotIt.plot_v2x(qtPlot['Close'], qtPlot['beLong'], plotTitle)
     
     plotTitle = "VIX Closing"
     plotIt.plot_v1(vixDataSet['VIXCLS'], plotTitle)
@@ -223,10 +230,10 @@ if __name__ == "__main__":
     plotIt.plot_v1(threeMoDataSet['DTB3'], plotTitle)
     
     # Merged dataSet confirmation
-    print(dataSet.Pri.head(20))
+    print(dataSet.Close.head(20))
     print(vixDataSet.head(20))
     merged_result = dataSet.join(vixDataSet, how='outer')
     print(merged_result.head(20))
     
     plotTitle = "VIX and " + str(issue) + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
-    plotIt.plot_v2x(merged_result['Pri'], merged_result['VIXCLS'], plotTitle)
+    plotIt.plot_v2x(merged_result['Close'], merged_result['VIXCLS'], plotTitle)

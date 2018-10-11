@@ -48,7 +48,7 @@ class CandleIndicators:
         current_feature['Latest'] = col_name
         feature_dict[col_name] = 'Keep'
 
-        nrows = dataSet.shape[0]
+        nrows = df.shape[0]
         pChg = np.zeros(nrows)
         p = df.Close
         for i in range(num_days, nrows):

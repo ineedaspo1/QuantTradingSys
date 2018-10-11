@@ -10,10 +10,7 @@ time_utils.py
 #sys.path.append('../lib')
 #sys.path.append('../utilities')
 
-from plot_utils import *
-from retrieve_data import *
-from indicators import *
-from transformers import *
+
 #from stat_tests import *
 
 import pandas as pd
@@ -36,13 +33,6 @@ class TimeUtility:
         dataLoadStartDate = inSampleStartDate - relativedelta(months=1)
         return_dates = (dataLoadStartDate,inSampleStartDate,oosStartDate,inSampleMonths)
         return return_dates
-    
-    def trim_dates(self, start_date, end_date, df):
-        df2 = pd.date_range(start=start_date, end=end_date, freq=us_cal)
-        print ("Start Date: ", start_date)
-        print ("End Date: ", end_date)
-        modelData = df.reindex(df2)
-        return modelData
 
 def print_beLongs(df):
     print ("beLong counts: ")
@@ -51,6 +41,10 @@ def print_beLongs(df):
     
 
 if __name__ == "__main__":
+    
+    from plot_utils import *
+    from retrieve_data import *
+    from transformers import *
     timeUtil = TimeUtility()
     plotIt = PlotUtility()
     
@@ -86,7 +80,7 @@ if __name__ == "__main__":
     dataSet = ct.setTarget(dataSet, "Long", beLongThreshold)
     
     for i in range(segments):
-        modelData = timeUtil.trim_dates(is_start_date, is_end_date, dataSet)
+        modelData = dSet.set_date_range(dataSet, is_start_date, is_end_date)
         print ("IN SAMPLE")
         print_beLongs(modelData)
         plotIt.plot_beLongs("In Sample", issue, modelData, is_start_date, is_end_date)
@@ -94,7 +88,7 @@ if __name__ == "__main__":
         is_end_date = is_end_date + relativedelta(months=is_months) - BDay(1)
         
         # OOS
-        modelData = timeUtil.trim_dates(oos_start_date, oos_end_date, dataSet)
+        modelData = dSet.set_date_range(dataSet, oos_start_date, oos_end_date)
         print ("OUT OF SAMPLE")
         print_beLongs(modelData)
         plotIt.plot_beLongs("Out of Sample", issue, modelData, oos_start_date, oos_end_date)

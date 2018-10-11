@@ -11,7 +11,6 @@ sys.path.append('../utilities')
 
 from plot_utils import *
 from retrieve_data import *
-from indicators import *
 from transformers import *
 from time_utils import *
 
@@ -29,14 +28,16 @@ from pandas.tseries.offsets import CustomBusinessDay
 us_cal = CustomBusinessDay(calendar=USFederalHolidayCalendar())
 
 if __name__ == "__main__":
+    
     plotIt = PlotUtility()
     timeUtil = TimeUtility()
     ct = ComputeTarget()
+    dSet = DataRetrieve()
  
     #set beLong level
     beLongThreshold = 0.000
     
-    issue = "EWH"
+    issue = "TLT"
     
     pivotDate = datetime.date(2018, 4, 2)
     is_oos_ratio = 4
@@ -65,7 +66,7 @@ if __name__ == "__main__":
     file_title = issue + "_in_sample_" + modelname + ".pkl"
     file_name = os.path.join(r'C:\Users\kruegkj\Documents\GitHub\QuantTradingSys\Code\models\model_data', file_title)
     dataSet = pd.read_pickle(file_name)
-    dataSet.set_index('Date', inplace=True)
+    #dataSet.set_index('Date', inplace=True)
     
     # retrieve model IS
     print("====Retrieving model====")
@@ -75,8 +76,10 @@ if __name__ == "__main__":
     model = pickle.load(open(file_name, 'rb'))
     
     
-    df2 = pd.date_range(start=modelStartDate, end=modelEndDate, freq=us_cal)
-    valData = dataSet.reindex(df2)
+#    df2 = pd.date_range(start=modelStartDate, end=modelEndDate, freq=us_cal)
+    
+#    valData = dataSet.reindex(df2)
+    valData = dSet.set_date_range(dataSet, modelStartDate, modelEndDate)
     tradesData = valData
         
     nrows = valData.shape[0]
@@ -85,15 +88,15 @@ if __name__ == "__main__":
     print (be_long_count)
     print ("out of ", nrows)
     
-    valData = valData.drop(['Open','High','Low','Close', 'Symbol'],axis=1)
+    valData = valData.drop(['Open','High','Low', 'Symbol'],axis=1)
     
     plotTitle = issue + ", " + str(modelStartDate) + " to " + str(modelEndDate)
-    plotIt.plot_v2x(valData['Pri'], valData['beLong'], plotTitle)
+    plotIt.plot_v2x(valData, plotTitle)
     plotIt.histogram(valData['beLong'], x_label="beLong signal", y_label="Frequency", 
       title = "beLong distribution for " + issue)        
     plt.show(block=False)
     
-    valModelData = valData.drop(['Pri','beLong','gainAhead'],axis=1)
+    valModelData = valData.drop(['Close','beLong','gainAhead', 'Date', 'percReturn'],axis=1)
     
     valRows = valModelData.shape[0]
     print("There are %i data points" % valRows)
@@ -144,7 +147,7 @@ if __name__ == "__main__":
     ax3 = plt.subplot2grid((6,1), (5,0), rowspan=1, colspan=1)
     
     ax2.plot(valData['valBeLong'], color='green', alpha =0.6)
-    ax1.plot(valData['Pri'])
+    ax1.plot(valData['Close'])
     ax3.plot(valData['beLong'], color='purple', alpha =0.6)
     
     ax1.label_outer()
@@ -222,7 +225,7 @@ if __name__ == "__main__":
     ax1.grid(True, which='minor', color='r', linestyle='-', alpha=0.2)
     
     ax2 = ax1.twinx()
-    ax2.plot(valData.Pri, color='black',alpha=0.6,label='CLOSE',linestyle='--')
+    ax2.plot(valData.Close, color='black',alpha=0.6,label='CLOSE',linestyle='--')
     ax2.legend(loc='center left', frameon=True, fontsize=8)
     ax2.label_outer()
     plt.show()
@@ -286,7 +289,7 @@ if __name__ == "__main__":
                 if tradesData.valBeLong[i]<0:
                     #  target is -1 -- beFlat 
                     #  Exit -- close the trade
-                    exitPrice = tradesData.Pri[i]
+                    exitPrice = tradesData.Close[i]
                     grossProceeds = sharesHeld[iTradeDay-1] * exitPrice
                     commissionAmount = sharesHeld[iTradeDay-1] * commission
                     netProceeds = grossProceeds - commissionAmount
@@ -305,7 +308,7 @@ if __name__ == "__main__":
                     #  Continue long
                     sharesHeld[iTradeDay] = sharesHeld[iTradeDay-1]
                     cash[iTradeDay] = cash[iTradeDay-1]
-                    MTMPrice = tradesData.Pri[i]
+                    MTMPrice = tradesData.Close[i]
                     openTradeEquity = sharesHeld[iTradeDay] * MTMPrice
                     accountBalance[iTradeDay] = cash[iTradeDay] + openTradeEquity
                     pass
@@ -314,7 +317,7 @@ if __name__ == "__main__":
                 if tradesData.valBeLong[i]>0:
                     #  target is +1 -- beLong
                     #  Enter a new position
-                    entryPrice = tradesData.Pri[i]
+                    entryPrice = tradesData.Close[i]
                     sharesHeld[iTradeDay] = int(fixedTradeDollars/(entryPrice+commission))
                     shareCost = sharesHeld[iTradeDay]*(entryPrice+commission)
                     cash[iTradeDay] = cash[iTradeDay-1] - shareCost
