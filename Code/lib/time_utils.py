@@ -6,14 +6,7 @@ Created on Sat May 26 10:19:51 2018
 
 time_utils.py
 """
-#import sys
-#sys.path.append('../lib')
-#sys.path.append('../utilities')
 
-
-#from stat_tests import *
-
-import pandas as pd
 import datetime
 from dateutil.relativedelta import relativedelta
 from pandas.tseries.holiday import USFederalHolidayCalendar
@@ -22,23 +15,36 @@ from pandas.tseries.offsets import BDay
 
 us_cal = CustomBusinessDay(calendar=USFederalHolidayCalendar())
 
-class TimeUtility:
-    
-    def is_oos_data_split(self, issue, pivotDate, isOosRatio, oosMonths, segments):
-        return_dates = ()
-        inSampleMonths = isOosRatio * oosMonths
-        months_to_load = oosMonths + segments * inSampleMonths
-        inSampleStartDate = pivotDate - relativedelta(months=months_to_load)
-        oosStartDate = pivotDate - relativedelta(months=oosMonths * segments)
-        dataLoadStartDate = inSampleStartDate - relativedelta(months=1)
-        return_dates = (dataLoadStartDate,inSampleStartDate,oosStartDate,inSampleMonths)
-        return return_dates
-
 def print_beLongs(df):
     print ("beLong counts: ")
     print (df['beLong'].value_counts())
     print ("==========================")
+
+class TimeUtility:
     
+    def is_oos_data_split(self, issue, pivotDate, isOosRatio, oosMonths, segments):
+        return_dates = ()
+        is_months = isOosRatio * oosMonths
+        months_to_load = oosMonths + segments * is_months
+        is_start_date = pivotDate - relativedelta(months=months_to_load)
+        oos_start_date = pivotDate - relativedelta(months=oosMonths * segments)
+        dataLoadStartDate = is_start_date - relativedelta(months=1)
+        is_end_date = is_start_date + relativedelta(months=is_months)
+        oos_end_date = oos_start_date + relativedelta(months=oosMonths)
+        
+        print("inSampleMonths: " + str(is_months))
+        print("Months to load: " + str(months_to_load))
+        print("Data Load Date: ", dataLoadStartDate)
+        print("In Sample Start  Date: ", is_start_date)
+        print("Out of Sample Start Date: ", oos_start_date)
+        print("Pivot Date: ", pivotDate)
+        return_dates = (dataLoadStartDate,
+                        is_start_date,
+                        oos_start_date,
+                        is_months,
+                        is_end_date,
+                        oos_end_date)
+        return return_dates
 
 if __name__ == "__main__":
     
@@ -59,16 +65,8 @@ if __name__ == "__main__":
     is_start_date = isOosDates[1]
     oos_start_date = isOosDates[2]
     is_months = isOosDates[3]
-    
-    is_end_date = is_start_date + relativedelta(months=is_months)
-    oos_end_date = oos_start_date + relativedelta(months=oos_months)
-    
-    print("inSampleMonths: " + str(is_months))
-    print("Months to load: " + str(oos_months + segments * is_months))
-    print("Load Date: ", dataLoadStartDate)
-    print("In Sample Start  Date: ", is_start_date)
-    print("Out of Sample Start Date: ", oos_start_date)
-    print("Pivot Date: ", pivotDate)
+    is_end_date = isOosDates[4]
+    oos_end_date = isOosDates[5]
     
     dSet = DataRetrieve()
     dataSet = dSet.read_issue_data(issue)   
@@ -80,7 +78,7 @@ if __name__ == "__main__":
     dataSet = ct.setTarget(dataSet, "Long", beLongThreshold)
     
     for i in range(segments):
-        modelData = dSet.set_date_range(dataSet, is_start_date, is_end_date)
+        modelData = dataSet[is_start_date:is_end_date]
         print ("IN SAMPLE")
         print_beLongs(modelData)
         plotIt.plot_beLongs("In Sample", issue, modelData, is_start_date, is_end_date)
@@ -88,7 +86,7 @@ if __name__ == "__main__":
         is_end_date = is_end_date + relativedelta(months=is_months) - BDay(1)
         
         # OOS
-        modelData = dSet.set_date_range(dataSet, oos_start_date, oos_end_date)
+        modelData = dataSet[oos_start_date:oos_end_date]
         print ("OUT OF SAMPLE")
         print_beLongs(modelData)
         plotIt.plot_beLongs("Out of Sample", issue, modelData, oos_start_date, oos_end_date)

@@ -13,7 +13,6 @@ sys.path.append('../../utilities')
 from plot_utils import *
 from time_utils import *
 from retrieve_data import *
-from indicators import *
 from transformers import *
 from model_utils import *
 #from stat_tests import *
@@ -48,9 +47,8 @@ if __name__ == "__main__":
     ct = ComputeTarget()
     modelUtil = ModelUtility()
     
+    # Load issue data    
     issue = "EWH"
-    
-    # Load issue data
     dSet = DataRetrieve()
     dataSet = dSet.read_issue_data(issue) 
     
@@ -66,29 +64,29 @@ if __name__ == "__main__":
     # Transform data
     ######################
     predictor_vars = 'Price and percReturn lags'
-     # set lag on Close (Pri)
+     # set lag on Close (Close)
     transf = Transformers()
-    lag_var = 'Pri'
+    lag_var = 'Close'
     lags = 4
-    dataSet, feature_dict = transf.add_lag(dataSet, lag_var, lags, feature_dict)
+    dataSet = transf.add_lag(dataSet, lag_var, lags)
     
     # set % return variables and lags
-    dataSet["percReturn"] = dataSet["Pri"].pct_change()*100
+    dataSet["percReturn"] = dataSet["Close"].pct_change()*100
     lag_var = 'percReturn'
     lags = 5    
-    dataSet, feature_dict = transf.add_lag(dataSet, lag_var, lags, feature_dict) 
+    dataSet = transf.add_lag(dataSet, lag_var, lags) 
     features_to_drop.append(lag_var)
     
     # add Close Higher features
-    dataSet['1DayHigherClose'] = dataSet['Pri'] > dataSet['Pri_lag1']
-    dataSet['2DayHigherClose'] = dataSet['Pri'] > dataSet['Pri_lag2']
-    dataSet['3DayHigherClose'] = dataSet['Pri'] > dataSet['Pri_lag3']
-    dataSet['4DayHigherClose'] = dataSet['Pri'] > dataSet['Pri_lag4']
+    dataSet['1DayHigherClose'] = dataSet['Close'] > dataSet['Close_lag1']
+    dataSet['2DayHigherClose'] = dataSet['Close'] > dataSet['Close_lag2']
+    dataSet['3DayHigherClose'] = dataSet['Close'] > dataSet['Close_lag3']
+    dataSet['4DayHigherClose'] = dataSet['Close'] > dataSet['Close_lag4']
     
-    dataSet['1DayLowerClose'] = dataSet['Pri'] < dataSet['Pri_lag1']
-    dataSet['2DayLowerClose'] = dataSet['Pri'] < dataSet['Pri_lag2']
-    dataSet['3DayLowerClose'] = dataSet['Pri'] < dataSet['Pri_lag3']
-    dataSet['4DayLowerClose'] = dataSet['Pri'] < dataSet['Pri_lag4']
+    dataSet['1DayLowerClose'] = dataSet['Close'] < dataSet['Close_lag1']
+    dataSet['2DayLowerClose'] = dataSet['Close'] < dataSet['Close_lag2']
+    dataSet['3DayLowerClose'] = dataSet['Close'] < dataSet['Close_lag3']
+    dataSet['4DayLowerClose'] = dataSet['Close'] < dataSet['Close_lag4']
     
     #############################
     # Set IS-OOS parameters
@@ -122,7 +120,7 @@ if __name__ == "__main__":
     file_name = os.path.join(r'C:\Users\kruegkj\Documents\GitHub\QuantTradingSys\Code\models\model_data', file_title)
     dataSet.to_pickle(file_name)
     
-    dataSet = dSet.drop_columns(dataSet,features_to_drop)
+    #dataSet = dSet.drop_columns(dataSet,features_to_drop)
     
     # Set data set for analysls
     dataSet = dSet.set_date_range(dataSet, dataLoadStartDate,pivotDate)
@@ -131,25 +129,10 @@ if __name__ == "__main__":
     
     # IS only
     for i in range(segments):
-        accuracy_scores_is = []
-        accuracy_scores_oos = []
-        precision_scores_is = []
-        precision_scores_oos = []
-        recall_scores_is = []
-        recall_scores_oos = []
-        f1_scores_is = []
-        f1_scores_oos = []
-        
-        #  Initialize the confusion matrix
-        cm_sum_is = np.zeros((2,2))
-        cm_sum_oos = np.zeros((2,2))
-        
-        # Set the date range for analysis within each segment
-        df2 = pd.date_range(start=modelStartDate, end=modelEndDate, freq=us_cal)
-        mmData = dataSet.reindex(df2)
+        mmData = dataSet[modelStartDate:modelEndDate]
         
         plotTitle = issue + ", " + str(modelStartDate) + " to " + str(modelEndDate)
-        plotIt.plot_v2x(mmData['Pri'], mmData['beLong'], plotTitle)
+        plotIt.plot_v2x(mmData, plotTitle)
         plotIt.histogram(mmData['beLong'], x_label="beLong signal", y_label="Frequency", 
           title = "beLong distribution for " + issue)        
         plt.show(block=False)

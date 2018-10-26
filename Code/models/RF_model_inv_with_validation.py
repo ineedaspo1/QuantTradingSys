@@ -24,13 +24,7 @@ import numpy as np
 import datetime
 from dateutil.relativedelta import relativedelta
 import matplotlib.pylab as plt
-#plt.style.use('seaborn-ticks')
-from pandas.tseries.holiday import USFederalHolidayCalendar
-from pandas.tseries.offsets import CustomBusinessDay
-from pandas.tseries.offsets import BDay
-#import matplotlib as mpl
-#plt.style.use('seaborn-ticks')
-#import matplotlib.ticker as ticker
+
 
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.metrics import confusion_matrix

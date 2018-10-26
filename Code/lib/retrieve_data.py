@@ -105,8 +105,9 @@ class DataRetrieve:
                 df: Dataframe with columns dropped
            To update: Verify columns exist before dropping
         """
-        df.drop(col_vals, axis =1, inplace=True)
-        return df
+        df2 = df.copy()
+        df2.drop(col_vals, axis =1, inplace=True)
+        return df2
     
     def save_obj(self, obj, name ):
         with open('../obj/'+ name + '.pkl', 'wb+') as f:
@@ -221,7 +222,7 @@ if __name__ == "__main__":
     plotIt.plot_v1(qtPlot['Close'], plotTitle)
     
     plotTitle = issue + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
-    plotIt.plot_v2x(qtPlot['Close'], qtPlot['beLong'], plotTitle)
+    plotIt.plot_v2x(qtPlot, plotTitle)
     
     plotTitle = "VIX Closing"
     plotIt.plot_v1(vixDataSet['VIXCLS'], plotTitle)
@@ -236,4 +237,4 @@ if __name__ == "__main__":
     print(merged_result.head(20))
     
     plotTitle = "VIX and " + str(issue) + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
-    plotIt.plot_v2x(merged_result['Close'], merged_result['VIXCLS'], plotTitle)
+    plotIt.plot_v2x(merged_result, plotTitle)

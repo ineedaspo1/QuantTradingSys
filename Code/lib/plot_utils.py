@@ -4,7 +4,7 @@ Created on Thu May 31 18:34:16 2018
 @author: kruegkj
 plot_utils.py
 """
-from  retrieve_data import *
+
 import matplotlib.pylab as plt
 import matplotlib as mpl
 import matplotlib.ticker as ticker
@@ -129,7 +129,9 @@ if __name__ == "__main__":
     dataLoadEndDate = "2010-04-01"
     issue = "XLV"
     
+    from retrieve_data import *
     dSet = DataRetrieve()
+    
     dataSet = dSet.read_issue_data(issue)
     dataSet = dSet.set_date_range(dataSet, dataLoadStartDate,dataLoadEndDate)
     

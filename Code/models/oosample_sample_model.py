@@ -49,9 +49,8 @@ if __name__ == "__main__":
     is_start_date = isOosDates[1]
     oos_start_date = isOosDates[2]
     is_months = isOosDates[3]
-    
-    is_end_date = is_start_date + relativedelta(months=is_months)
-    oos_end_date = oos_start_date + relativedelta(months=oos_months)
+    is_end_date = isOosDates[4]
+    oos_end_date = isOosDates[5]
     
     # Select the date range
     modelStartDate = oos_start_date
@@ -88,15 +87,19 @@ if __name__ == "__main__":
     print (be_long_count)
     print ("out of ", nrows)
     
-    valData = valData.drop(['Open','High','Low', 'Symbol'],axis=1)
-    
     plotTitle = issue + ", " + str(modelStartDate) + " to " + str(modelEndDate)
     plotIt.plot_v2x(valData, plotTitle)
     plotIt.histogram(valData['beLong'], x_label="beLong signal", y_label="Frequency", 
       title = "beLong distribution for " + issue)        
     plt.show(block=False)
     
-    valModelData = valData.drop(['Close','beLong','gainAhead', 'Date', 'percReturn'],axis=1)
+   # valModelData = valData.drop(['Close','beLong','gainAhead', 'Date', 'percReturn'],axis=1)
+    
+    col_vals = [k for k,v in feature_dict.items() if v == 'Drop']
+    to_drop = ['Open','High','Low', 'gainAhead', 'Symbol', 'Date']
+    for x in to_drop:
+        col_vals.append(x)
+    valModelData = dSet.drop_columns(valData, col_vals)
     
     valRows = valModelData.shape[0]
     print("There are %i data points" % valRows)

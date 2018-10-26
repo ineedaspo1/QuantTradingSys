@@ -6,9 +6,7 @@ Created on Wed Jun  6 15:38:00 2018
 
 model_utils.py
 """
-
 from retrieve_data import *
-
 
 import numpy as np
 import pandas as pd
@@ -45,8 +43,7 @@ class ModelUtility:
         return return_cm
     
     def prepare_for_classification(self, mmData):
-        
-        mmData = mmData.drop(['Pri'],axis=1)
+        mmData = mmData.drop(['Close'],axis=1)
         datay = mmData['beLong']
 #        nrows = datay.shape[0]
 #        print ("nrows beLong: ", nrows)
@@ -55,10 +52,8 @@ class ModelUtility:
         #  Copy from pandas dataframe to numpy arrays
         dy = np.zeros_like(datay)
         dX = np.zeros_like(dataX)
-        
         dy = datay.values
         dX = dataX.values
-            
         return dX, dy
     
     def model_and_test(self, dX, dy, model, model_results, sss, info_dict):
@@ -132,7 +127,7 @@ if __name__ == "__main__":
     plotIt = PlotUtility()
     
     plotTitle = "Closing price for " + issue + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
-    plotIt.plot_v1(dataSet['Pri'], plotTitle)
+    plotIt.plot_v1(dataSet['Close'], plotTitle)
     
     beLongThreshold = 0
     cT = ComputeTarget()
@@ -148,11 +143,11 @@ if __name__ == "__main__":
     #fig = plt.figure(figsize=(15,8  ))
     fig, axes = plt.subplots(5,1, figsize=(15,8), sharex=True)
 
-    axes[0].plot(rsiDataSet['Pri'], label=issue)
-    axes[1].plot(rsiDataSet['Pri_RSI'], label='RSI');
-    axes[2].plot(rsiDataSet['Pri_ROC'], label='ROC');
-    axes[3].plot(rsiDataSet['Pri_DPO'], label='DPO');
-    axes[4].plot(rsiDataSet['Pri_ATR'], label='ATR');
+    axes[0].plot(rsiDataSet['Close'], label=issue)
+    axes[1].plot(rsiDataSet['Close_RSI'], label='RSI');
+    axes[2].plot(rsiDataSet['Close_ROC'], label='ROC');
+    axes[3].plot(rsiDataSet['Close_DPO'], label='DPO');
+    axes[4].plot(rsiDataSet['Close_ATR'], label='ATR');
     
     # Bring subplots close to each other.
     plt.subplots_adjust(hspace=0)
