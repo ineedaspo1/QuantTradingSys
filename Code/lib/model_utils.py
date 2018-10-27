@@ -43,12 +43,8 @@ class ModelUtility:
         return return_cm
     
     def prepare_for_classification(self, mmData):
-        mmData = mmData.drop(['Close'],axis=1)
         datay = mmData['beLong']
-#        nrows = datay.shape[0]
-#        print ("nrows beLong: ", nrows)
         dataX = mmData.drop(['beLong'],axis=1)
-        
         #  Copy from pandas dataframe to numpy arrays
         dy = np.zeros_like(datay)
         dX = np.zeros_like(dataX)

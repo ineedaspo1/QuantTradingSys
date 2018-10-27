@@ -21,7 +21,7 @@ from dateutil.relativedelta import relativedelta
 import matplotlib.pylab as plt
 import os.path
 import pickle
-
+from pandas.tseries.offsets import BDay
 from pandas.tseries.holiday import USFederalHolidayCalendar
 from pandas.tseries.offsets import CustomBusinessDay
 us_cal = CustomBusinessDay(calendar=USFederalHolidayCalendar())
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     pivotDate = datetime.date(2018, 4, 2)
     is_oos_ratio = 4
     oos_months = 3
-    segments = 3
+    segments = 2
     
     isOosDates = timeUtil.is_oos_data_split(issue,
                                             pivotDate,
@@ -55,13 +55,6 @@ if __name__ == "__main__":
     is_end_date         = isOosDates[4]
     oos_end_date        = isOosDates[5]
     
-    # Select the date range
-    modelStartDate = oos_start_date
-    print("Model start: ", modelStartDate)
-    modelEndDate = modelStartDate + relativedelta(months=oos_months)
-    print("Model end: ", modelEndDate)
-
-
     # retrieve dataset from IS
     print("\n\n====Retrieving dataSet====")
     modelname = 'RF'
@@ -77,163 +70,163 @@ if __name__ == "__main__":
     file_name = os.path.join(r'C:\Users\kruegkj\Documents\GitHub\QuantTradingSys\Code\models\model_data', file_title)
     model = pickle.load(open(file_name, 'rb'))
     
+    # Select the date range
+    modelStartDate = oos_start_date
+    print("Model start: ", modelStartDate)
+    modelEndDate = modelStartDate + relativedelta(months=oos_months)
+    print("Model end: ", modelEndDate)
+    
 #    valData = dataSet.reindex(df2)
     valData = dSet.set_date_range(dataSet, modelStartDate, modelEndDate)
+    
     tradesData = valData
+    
+    for i in range(segments):
         
-#    nrows = valData.shape[0]
-#    print ("\n\nbeLong counts: ")
-#    be_long_count = valData['beLong'].value_counts()
-#    print (be_long_count)
-#    print ("out of ", nrows)
+        valData = dataSet[modelStartDate:modelEndDate]
+        tradesData = valData
+        plotTitle = issue + ", " + str(modelStartDate) + " to " + str(modelEndDate)
+        plotIt.plot_v2x(valData, plotTitle)
+        plotIt.histogram(valData['beLong'], x_label="beLong signal", y_label="Frequency", 
+          title = "beLong distribution for " + issue)        
+        plt.show(block=False)
     
-    plotTitle = issue + ", " + str(modelStartDate) + " to " + str(modelEndDate)
-    plotIt.plot_v2x(valData, plotTitle)
-    plotIt.histogram(valData['beLong'], x_label="beLong signal", y_label="Frequency", 
-      title = "beLong distribution for " + issue)        
-    plt.show(block=False)
+        col_vals = json.load(open('columns_to_keep.json', 'r'))
+        col_vals.remove('beLong')
+        valModelData = dSet.keep_columns(valData, col_vals)
     
-    col_vals = json.load(open('columns_to_keep.json', 'r'))
-    col_vals.remove('beLong')
-    valModelData = dSet.keep_columns(valData, col_vals)
+        valRows = valModelData.shape[0]
+        print("There are %i data points" % valRows)
     
-    valRows = valModelData.shape[0]
-    print("There are %i data points" % valRows)
+        # test the validation data
+        y_validate = []
+        y_validate = model.predict(valModelData)
     
-    #dy = np.zeros_like(valModelData)
-    #dy = valModelData.values
+        # Create best estimate of trades
+        bestEstimate = np.zeros(valRows)
     
-    # test the validation data
-    y_validate = []
-    y_validate = model.predict(valModelData)
-    #y_validate = model.predict(dy)
-    
-    # Create best estimate of trades
-    bestEstimate = np.zeros(valRows)
-    
-    # You may need to adjust for the first and / or final entry 
-    for i in range(valRows -1):
-        print(valData.gainAhead.iloc[i], y_validate[i])
-        if y_validate[i] > 0.0: 
-            bestEstimate[i] = valData.gainAhead.iloc[i]
-        else:
-            bestEstimate[i] = 0.0 
+        # You may need to adjust for the first and / or final entry 
+        for i in range(valRows -1):
+            print(valData.gainAhead.iloc[i], y_validate[i])
+            if y_validate[i] > 0.0: 
+                bestEstimate[i] = valData.gainAhead.iloc[i]
+            else:
+                bestEstimate[i] = 0.0 
             
-    # Create and plot equity curve
-    equity = np.zeros(valRows)
-    equity[0] = 1.0
-    for i in range(1,valRows):
-        equity[i] = (1+bestEstimate[i])*equity[i-1]
+        # Create and plot equity curve
+        equity = np.zeros(valRows)
+        equity[0] = 1.0
+        for i in range(1,valRows):
+            equity[i] = (1+bestEstimate[i])*equity[i-1]
+            
+        print("\nTerminal Weatlh: ", equity[valRows-1])
+        plt.plot(equity)
         
-    print("\nTerminal Weatlh: ", equity[valRows-1])
-    plt.plot(equity)
-    
-    print("\n End of Run")
-    
-    valData['valBeLong'] = pd.Series(y_validate, index=valData.index)
-    
-    
-    #==========================
-    import matplotlib as mpl
-    #from matplotlib import style
-    plt.style.use('seaborn-ticks')
-    import matplotlib.ticker as ticker
-    
-    fig = plt.figure(figsize=(12,8))
-    plt.subplots_adjust(hspace=0.05)
-    ax1 = plt.subplot2grid((6,1), (0,0), rowspan=4, colspan=1)
-    ax2 = plt.subplot2grid((6,1), (4,0), rowspan=1, colspan=1)
-    ax3 = plt.subplot2grid((6,1), (5,0), rowspan=1, colspan=1)
-    
-    ax2.plot(valData['valBeLong'], color='green', alpha =0.6)
-    ax1.plot(valData['Close'])
-    ax3.plot(valData['beLong'], color='purple', alpha =0.6)
-    
-    ax1.label_outer()
-    ax2.label_outer()
-    ax2.tick_params(axis='x',which='major',bottom='on')
-    ax1.grid(True, which='major', color='k', linestyle='-', alpha=0.6)
-    ax2.grid(True, which='major', color='k', linestyle='-', alpha=0.6)
-    ax3.grid(True, which='major', color='k', linestyle='-', alpha=0.6)
-    ax1.grid(True, which='minor', color='r', linestyle='-', alpha=0.2)
-    ax2.grid(True, which='minor', color='r', linestyle='-', alpha=0.2)
-    ax3.grid(True, which='minor', color='r', linestyle='-', alpha=0.2)
-    ax1.minorticks_on()
-    ax2.minorticks_on()
-    ax3.minorticks_on()
-    ax1.label_outer()
-    ax1.legend(loc='upper left', frameon=True, fontsize=8)
-    ax2.label_outer()
-    ax2.legend(loc='upper left', frameon=True, fontsize=8)
-    ax3.label_outer()
-    ax3.legend(loc='upper left', frameon=True, fontsize=8)
-    
-    #==========================
-    tradesData['valBeLong'] = pd.Series(y_validate, index=tradesData.index)
-    tradesData['gain'] = tradesData['Close'] - tradesData['Open']
-    
-    #  Count the number of rows in the file
-    nrows = tradesData.shape[0]
-    print ('There are %0.f rows of data' % nrows)
-    
-    #  Compute cumulative equity for all days
-    equityAllSignals = np.zeros(nrows)
-    equityAllSignals[0] = 1
-    for i in range(1,nrows):
-        equityAllSignals[i] = (1+tradesData.gainAhead[i])*equityAllSignals[i-1]
-    
-    print ('TWR for all signals is %0.3f' % equityAllSignals[nrows-1])
-    # add to valData
-    valData['equityAllSignals'] = pd.Series(equityAllSignals, index=valData.index)
+        print("\n End of Run")
         
-    #  Compute cumulative equity for days with beLong signals    
-    equityBeLongSignals = np.zeros(nrows)
-    equityBeLongSignals[0] = 1
-    for i in range(1,nrows):
-        if (tradesData.beLong[i] > 0):
-            equityBeLongSignals[i] = (1+tradesData.gainAhead[i])*equityBeLongSignals[i-1]
-        else:
-            equityBeLongSignals[i] = equityBeLongSignals[i-1]
-    valData['equityBeLongSignals'] = pd.Series(equityBeLongSignals, index=valData.index)
+        valData['valBeLong'] = pd.Series(y_validate, index=valData.index)
+        
+        
+        #==========================
+        import matplotlib as mpl
+        #from matplotlib import style
+        plt.style.use('seaborn-ticks')
+        import matplotlib.ticker as ticker
+        
+        fig = plt.figure(figsize=(12,8))
+        plt.subplots_adjust(hspace=0.05)
+        ax1 = plt.subplot2grid((6,1), (0,0), rowspan=4, colspan=1)
+        ax2 = plt.subplot2grid((6,1), (4,0), rowspan=1, colspan=1)
+        ax3 = plt.subplot2grid((6,1), (5,0), rowspan=1, colspan=1)
+        
+        ax2.plot(valData['valBeLong'], color='green', alpha =0.6)
+        ax1.plot(valData['Close'])
+        ax3.plot(valData['beLong'], color='purple', alpha =0.6)
+        
+        ax1.label_outer()
+        ax2.label_outer()
+        ax2.tick_params(axis='x',which='major',bottom='on')
+        ax1.grid(True, which='major', color='k', linestyle='-', alpha=0.6)
+        ax2.grid(True, which='major', color='k', linestyle='-', alpha=0.6)
+        ax3.grid(True, which='major', color='k', linestyle='-', alpha=0.6)
+        ax1.grid(True, which='minor', color='r', linestyle='-', alpha=0.2)
+        ax2.grid(True, which='minor', color='r', linestyle='-', alpha=0.2)
+        ax3.grid(True, which='minor', color='r', linestyle='-', alpha=0.2)
+        ax1.minorticks_on()
+        ax2.minorticks_on()
+        ax3.minorticks_on()
+        ax1.label_outer()
+        ax1.legend(loc='upper left', frameon=True, fontsize=8)
+        ax2.label_outer()
+        ax2.legend(loc='upper left', frameon=True, fontsize=8)
+        ax3.label_outer()
+        ax3.legend(loc='upper left', frameon=True, fontsize=8)
+        
+        #==========================
+        tradesData['valBeLong'] = pd.Series(y_validate, index=tradesData.index)
+        tradesData['gain'] = tradesData['Close'] - tradesData['Open']
+        
+        #  Count the number of rows in the file
+        nrows = tradesData.shape[0]
+        print ('There are %0.f rows of data' % nrows)
+        
+        #  Compute cumulative equity for all days
+        equityAllSignals = np.zeros(nrows)
+        equityAllSignals[0] = 1
+        for i in range(1,nrows):
+            equityAllSignals[i] = (1+tradesData.gainAhead[i])*equityAllSignals[i-1]
+        
+        print ('TWR for all signals is %0.3f' % equityAllSignals[nrows-1])
+        # add to valData
+        valData['equityAllSignals'] = pd.Series(equityAllSignals, index=valData.index)
+            
+        #  Compute cumulative equity for days with beLong signals    
+        equityBeLongSignals = np.zeros(nrows)
+        equityBeLongSignals[0] = 1
+        for i in range(1,nrows):
+            if (tradesData.beLong[i] > 0):
+                equityBeLongSignals[i] = (1+tradesData.gainAhead[i])*equityBeLongSignals[i-1]
+            else:
+                equityBeLongSignals[i] = equityBeLongSignals[i-1]
+        valData['equityBeLongSignals'] = pd.Series(equityBeLongSignals, index=valData.index)
+        
+        #  Compute cumulative equity for days with Validation beLong signals    
+        equityValBeLongSignals = np.zeros(nrows)
+        equityValBeLongSignals[0] = 1
+        for i in range(1,nrows):
+            if (tradesData.valBeLong[i] > 0):
+                equityValBeLongSignals[i] = (1+tradesData.gainAhead[i])*equityValBeLongSignals[i-1]
+            else:
+                equityValBeLongSignals[i] = equityValBeLongSignals[i-1]
+                       
+        print ('TWR for all days with beLong signals is %0.3f' % equityBeLongSignals[nrows-1])
+        valData['equityValBeLongSignals'] = pd.Series(equityValBeLongSignals, index=valData.index)
+        
+        #  Plot the two equity streams
+        fig = plt.figure(figsize=(12,8))
+        fig.suptitle(issue + ' Portfolio value in Validation')
+        ax1 = fig.add_subplot(111)
+        ax1.plot(valData.equityBeLongSignals, color='green',label='BeLong')
+        ax1.plot(valData.equityAllSignals, color='blue',label='Equity')
+        ax1.plot(valData.equityValBeLongSignals, color='purple',label='ValBeLong')
+        
+        ax1.legend(loc='upper left', frameon=True, fontsize=8)
+        ax1.label_outer()
+        ax1.tick_params(axis='x',which='major',bottom='on')
+        ax1.minorticks_on()
+        ax1.grid(True, which='major', color='k', linestyle='-', alpha=0.6)
+        ax1.grid(True, which='minor', color='r', linestyle='-', alpha=0.2)
+        
+        ax2 = ax1.twinx()
+        ax2.plot(valData.Close, color='black',alpha=0.6,label='CLOSE',linestyle='--')
+        ax2.legend(loc='center left', frameon=True, fontsize=8)
+        ax2.label_outer()
+        plt.show()
+        
+        modelStartDate = modelEndDate  + BDay(1)
+        modelEndDate = modelStartDate + relativedelta(months = oos_months) - BDay(1)
     
-    #  Compute cumulative equity for days with Validation beLong signals    
-    equityValBeLongSignals = np.zeros(nrows)
-    equityValBeLongSignals[0] = 1
-    for i in range(1,nrows):
-        if (tradesData.valBeLong[i] > 0):
-            equityValBeLongSignals[i] = (1+tradesData.gainAhead[i])*equityValBeLongSignals[i-1]
-        else:
-            equityValBeLongSignals[i] = equityValBeLongSignals[i-1]
-                   
-    print ('TWR for all days with beLong signals is %0.3f' % equityBeLongSignals[nrows-1])
-    valData['equityValBeLongSignals'] = pd.Series(equityValBeLongSignals, index=valData.index)
-    
-    #  Plot the two equity streams
-    fig = plt.figure(figsize=(12,8))
-    fig.suptitle(issue + ' Portfolio value in Validation')
-    ax1 = fig.add_subplot(111)
-    ax1.plot(valData.equityBeLongSignals, color='green',label='BeLong')
-    ax1.plot(valData.equityAllSignals, color='blue',label='Equity')
-    ax1.plot(valData.equityValBeLongSignals, color='purple',label='ValBeLong')
-    
-    ax1.legend(loc='upper left', frameon=True, fontsize=8)
-    ax1.label_outer()
-    ax1.tick_params(axis='x',which='major',bottom='on')
-    ax1.minorticks_on()
-    ax1.grid(True, which='major', color='k', linestyle='-', alpha=0.6)
-    ax1.grid(True, which='minor', color='r', linestyle='-', alpha=0.2)
-    
-    ax2 = ax1.twinx()
-    ax2.plot(valData.Close, color='black',alpha=0.6,label='CLOSE',linestyle='--')
-    ax2.legend(loc='center left', frameon=True, fontsize=8)
-    ax2.label_outer()
-    plt.show()
-    
-    #===================================        
-    # Getting sample equity curve
-    
-    
-    
+
     
     #  Evaluation of signals
     

@@ -109,6 +109,18 @@ class DataRetrieve:
         df2.drop(col_vals, axis =1, inplace=True)
         return df2
     
+    def keep_columns(self, df, col_vals):
+        """Utility to drop columns   
+           Args:
+                df: dataframe of issue data
+                col_vals: list of column names
+           Return:
+                df: Dataframe with columns dropped
+           To update: Verify columns exist before dropping
+        """
+        df2 = df[col_vals]
+        return df2
+    
     def save_obj(self, obj, name ):
         with open('../obj/'+ name + '.pkl', 'wb+') as f:
             pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
