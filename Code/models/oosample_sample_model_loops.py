@@ -56,7 +56,7 @@ if __name__ == "__main__":
     oos_end_date        = isOosDates[5]
     
     # retrieve dataset from IS
-    print("\n\n====Retrieving dataSet====")
+    print("\n====Retrieving dataSet====")
     modelname = 'RF'
     file_title = issue + "_in_sample_" + modelname + ".pkl"
     file_name = os.path.join(r'C:\Users\kruegkj\Documents\GitHub\QuantTradingSys\Code\models\model_data', file_title)
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     #dataSet.set_index('Date', inplace=True)
     
     # retrieve model IS
-    print("\n\n====Retrieving model====")
+    print("====Retrieving model====\n")
     modelname = 'RF'
     file_title = issue + "_predictive_model_" + modelname + ".sav"
     file_name = os.path.join(r'C:\Users\kruegkj\Documents\GitHub\QuantTradingSys\Code\models\model_data', file_title)
@@ -72,21 +72,24 @@ if __name__ == "__main__":
     
     # Select the date range
     modelStartDate = oos_start_date
-    print("Model start: ", modelStartDate)
+    
     modelEndDate = modelStartDate + relativedelta(months=oos_months)
-    print("Model end: ", modelEndDate)
+    
     
 #    valData = dataSet.reindex(df2)
-    valData = dSet.set_date_range(dataSet, modelStartDate, modelEndDate)
+    #valData = dSet.set_date_range(dataSet, modelStartDate, modelEndDate)
     
-    tradesData = valData
+    #tradesData = valData.copy()
     
     for i in range(segments):
+        print("Model start: ", modelStartDate)
+        print("Model end: ", modelEndDate)
         
-        valData = dataSet[modelStartDate:modelEndDate]
-        tradesData = valData
-        plotTitle = issue + ", " + str(modelStartDate) + " to " + str(modelEndDate)
+        valData = dataSet[modelStartDate:modelEndDate].copy()
+        tradesData = valData.copy()
+        plotTitle = issue + "Close " + str(modelStartDate) + " to " + str(modelEndDate)
         plotIt.plot_v2x(valData, plotTitle)
+        plt.show(block=False)
         plotIt.histogram(valData['beLong'], x_label="beLong signal", y_label="Frequency", 
           title = "beLong distribution for " + issue)        
         plt.show(block=False)
@@ -107,7 +110,7 @@ if __name__ == "__main__":
     
         # You may need to adjust for the first and / or final entry 
         for i in range(valRows -1):
-            print(valData.gainAhead.iloc[i], y_validate[i])
+            #print(valData.gainAhead.iloc[i], y_validate[i])
             if y_validate[i] > 0.0: 
                 bestEstimate[i] = valData.gainAhead.iloc[i]
             else:
@@ -121,8 +124,11 @@ if __name__ == "__main__":
             
         print("\nTerminal Weatlh: ", equity[valRows-1])
         plt.plot(equity)
+        plt.title('Terminal wealth of predicted trades')
+        plt.show(block=False)
         
-        print("\n End of Run")
+        print("\n End of Run\n")
+        print("\n======================================\n")
         
         valData['valBeLong'] = pd.Series(y_validate, index=valData.index)
         
@@ -161,6 +167,8 @@ if __name__ == "__main__":
         ax2.legend(loc='upper left', frameon=True, fontsize=8)
         ax3.label_outer()
         ax3.legend(loc='upper left', frameon=True, fontsize=8)
+        plt.title('Comparison of beLong vs. Predicted beLong')
+        plt.show(block=False)
         
         #==========================
         tradesData['valBeLong'] = pd.Series(y_validate, index=tradesData.index)
@@ -221,149 +229,153 @@ if __name__ == "__main__":
         ax2.plot(valData.Close, color='black',alpha=0.6,label='CLOSE',linestyle='--')
         ax2.legend(loc='center left', frameon=True, fontsize=8)
         ax2.label_outer()
-        plt.show()
+        plt.show(block=False)
         
-        modelStartDate = modelEndDate  + BDay(1)
-        modelEndDate = modelStartDate + relativedelta(months = oos_months) - BDay(1)
+#        modelStartDate = modelEndDate  + BDay(1)
+#        modelEndDate = modelStartDate + relativedelta(months = oos_months) - BDay(1)
     
 
-    
-    #  Evaluation of signals
-    
-    print ("Starting single run")
-    
-    #  Status variables
-    
-    ndays = tradesData.shape[0]
-    
-    #  Local variables for trading system
-    
-    initialEquity = 100000
-    fixedTradeDollars = 10000
-    commission = 0.005      #  Dollars per share per trade
-    
-    #  These are scalar and apply to the current conditions
-    
-    entryPrice = 0
-    exitPrice = 0
-    
-    #  These have an element for each day loaded
-    #  Some will be unnecessary
-    
-    accountBalance = np.zeros(ndays)
-    cash = np.zeros(ndays)
-    sharesHeld = np.zeros(ndays)
-    tradeGain = []
-    tradeGainDollars = []
-    openTradeEquity = np.zeros(ndays)
-    tradeWinsValue = np.zeros(ndays)
-    tradeLossesValue = np.zeros(ndays)
-    
-    
-    iTradeDay = 0
-    iTradeNumber = 0
-    
-    #  Day 0 contains the initial values
-    accountBalance[0] = initialEquity
-    cash[0] = accountBalance[0]
-    sharesHeld[0] = 0
-    
-    #  Loop over all the days loaded
-    for i in range (1,ndays):
-        #  Extract the date
-        dt = tradesData.index[i]
-        #  Check the date
-        datesPass = dt.date()>=modelStartDate and dt.date()<=modelEndDate
-        if datesPass:
-            iTradeDay = iTradeDay + 1
-            if sharesHeld[iTradeDay-1] > 0:
-                #  In a long position
-                if tradesData.valBeLong[i]<0:
-                    #  target is -1 -- beFlat 
-                    #  Exit -- close the trade
-                    exitPrice = tradesData.Close[i]
-                    grossProceeds = sharesHeld[iTradeDay-1] * exitPrice
-                    commissionAmount = sharesHeld[iTradeDay-1] * commission
-                    netProceeds = grossProceeds - commissionAmount
-                    #print("netProceeds: ", netProceeds)
-                    cash[iTradeDay] = cash[iTradeDay-1] + netProceeds
-                    accountBalance[iTradeDay] = cash[iTradeDay]
-                    sharesHeld[iTradeDay] = 0
-                    iTradeNumber = iTradeNumber+1
-                    #tradeGain[iTradeNumber] = (exitPrice / (1.0 * entryPrice))    
-                    tradeGain.append(exitPrice / (1.0 * entryPrice))
-                    tradeGainDollars.append(((exitPrice / (1.0 * entryPrice))*fixedTradeDollars)-fixedTradeDollars)
+        #  Evaluation of signals      
+        print ("Starting single run")
+        
+        #  Status variables     
+        ndays = tradesData.shape[0]
+        
+        #  Local variables for trading system    
+        initialEquity = 100000
+        fixedTradeDollars = 10000
+        commission = 0.005      #  Dollars per share per trade
+        
+        #  These are scalar and apply to the current conditions      
+        entryPrice = 0
+        exitPrice = 0
+        
+        #  These have an element for each day loaded
+        #  Some will be unnecessary    
+        accountBalance = np.zeros(ndays)
+        cash = np.zeros(ndays)
+        sharesHeld = np.zeros(ndays)
+        tradeGain = []
+        tradeGainDollars = []
+        openTradeEquity = np.zeros(ndays)
+        tradeWinsValue = np.zeros(ndays)
+        tradeLossesValue = np.zeros(ndays)
+        
+        iTradeDay = 0
+        iTradeNumber = 0
+        
+        #  Day 0 contains the initial values
+        accountBalance[0] = initialEquity
+        cash[0] = accountBalance[0]
+        sharesHeld[0] = 0
+        
+        #  Loop over all the days loaded
+        for i in range (1,ndays):
+            #  Extract the date
+            dt = tradesData.index[i]
+            dt = dt.date()
+            #  Check the date
+            datesPass = dt>=modelStartDate and dt<=modelEndDate
+            if datesPass:
+                iTradeDay = iTradeDay + 1
+                if sharesHeld[iTradeDay-1] > 0:
+                    #  In a long position
+                    if tradesData.valBeLong[i]<0:
+                        #  target is -1 -- beFlat 
+                        #  Exit -- close the trade
+                        exitPrice = tradesData.Close[i]
+                        grossProceeds = sharesHeld[iTradeDay-1] * exitPrice
+                        commissionAmount = sharesHeld[iTradeDay-1] * commission
+                        netProceeds = grossProceeds - commissionAmount
+                        #print("netProceeds: ", netProceeds)
+                        cash[iTradeDay] = cash[iTradeDay-1] + netProceeds
+                        accountBalance[iTradeDay] = cash[iTradeDay]
+                        sharesHeld[iTradeDay] = 0
+                        iTradeNumber = iTradeNumber+1
+                        #tradeGain[iTradeNumber] = (exitPrice / (1.0 * entryPrice))    
+                        tradeGain.append(exitPrice / (1.0 * entryPrice))
+                        tradeGainDollars.append(((exitPrice / (1.0 * entryPrice))*fixedTradeDollars)-fixedTradeDollars)
+                        
+                        pass
+                    else:
+                        #  target is +1 -- beLong
+                        #  Continue long
+                        sharesHeld[iTradeDay] = sharesHeld[iTradeDay-1]
+                        cash[iTradeDay] = cash[iTradeDay-1]
+                        MTMPrice = tradesData.Close[i]
+                        openTradeEquity = sharesHeld[iTradeDay] * MTMPrice
+                        accountBalance[iTradeDay] = cash[iTradeDay] + openTradeEquity
+                        pass
+                else:
+                    #  Currently flat
+                    if tradesData.valBeLong[i]>0:
+                        #  target is +1 -- beLong
+                        #  Enter a new position
+                        entryPrice = tradesData.Close[i]
+                        sharesHeld[iTradeDay] = int(fixedTradeDollars/(entryPrice+commission))
+                        shareCost = sharesHeld[iTradeDay]*(entryPrice+commission)
+                        cash[iTradeDay] = cash[iTradeDay-1] - shareCost
+                        openTradeEquity = sharesHeld[iTradeDay]*entryPrice
+                        accountBalance[iTradeDay] = cash[iTradeDay] + openTradeEquity
+                        pass
+                    else:
+                        #  target is -1 -- beFlat
+                        #  Continue flat
+                        cash[iTradeDay] = cash[iTradeDay-1]
+                        accountBalance[iTradeDay] = cash[iTradeDay] 
+                        pass
                     
-                    pass
-                else:
-                    #  target is +1 -- beLong
-                    #  Continue long
-                    sharesHeld[iTradeDay] = sharesHeld[iTradeDay-1]
-                    cash[iTradeDay] = cash[iTradeDay-1]
-                    MTMPrice = tradesData.Close[i]
-                    openTradeEquity = sharesHeld[iTradeDay] * MTMPrice
-                    accountBalance[iTradeDay] = cash[iTradeDay] + openTradeEquity
-                    pass
-            else:
-                #  Currently flat
-                if tradesData.valBeLong[i]>0:
-                    #  target is +1 -- beLong
-                    #  Enter a new position
-                    entryPrice = tradesData.Close[i]
-                    sharesHeld[iTradeDay] = int(fixedTradeDollars/(entryPrice+commission))
-                    shareCost = sharesHeld[iTradeDay]*(entryPrice+commission)
-                    cash[iTradeDay] = cash[iTradeDay-1] - shareCost
-                    openTradeEquity = sharesHeld[iTradeDay]*entryPrice
-                    accountBalance[iTradeDay] = cash[iTradeDay] + openTradeEquity
-                    pass
-                else:
-                    #  target is -1 -- beFlat
-                    #  Continue flat
-                    cash[iTradeDay] = cash[iTradeDay-1]
-                    accountBalance[iTradeDay] = cash[iTradeDay] 
-                    pass
-                
-    #  Format and print results        
-     
-    finalAccountBalance = accountBalance[iTradeDay]
-    print ('Final account balance: %.2f' %  finalAccountBalance)
-    numberTradeDays = iTradeDay        
-    numberTrades = iTradeNumber
-    print ("Number of trades:", numberTrades)
-    
-    from pandas import Series
-    
-    Sequity = Series(accountBalance[0:numberTradeDays-1])
-    
-    Sequity.plot()
-    
-    tradeWins = sum(1 for x in tradeGain if float(x) >= 1.0)
-    tradeLosses = sum(1 for x in tradeGain if float(x) < 1.0 and float(x) > 0)
-    print("Wins: ", tradeWins)
-    print("Losses: ", tradeLosses)
-    print("W/L: ", tradeWins/numberTrades)
-    
-    tradeWinsValue = sum((x*fixedTradeDollars)-fixedTradeDollars for x in tradeGain if float(x) >= 1.0)
-    tradeLossesValue = sum((x*fixedTradeDollars)-fixedTradeDollars for x in tradeGain if float(x) < 1.0 and float(x) > 0)
-    print('Total value of Wins:  %.2f' % tradeWinsValue)
-    print('Total value of Losses:  %.2f' % tradeLossesValue)
-    #(Win % x Average Win Size) – (Loss % x Average Loss Size)
-    print('Expectancy:  %.2f' % ((tradeWins/numberTrades)*(tradeWinsValue/tradeWins)-(tradeLosses/numberTrades)*(tradeLossesValue/tradeLosses)))
-    print("Fixed trade size: ", fixedTradeDollars)
-    
-    # Sharpe ratio...probably not correct math
-    #import math
-    #print(np.mean(tradeGainDollars))
-    #print(np.std(tradeGainDollars))
-    #print(math.sqrt(numberTradeDays)*(np.mean(tradeGainDollars)/np.std(tradeGainDollars)))
-    
-    
-    ####  end  ####     
-    df_to_save = tradesData[['valBeLong','gainAhead']].copy()
-    df_to_save.reset_index(level=df_to_save.index.names, inplace=True)
-    df_to_save.columns=['Date','signal','gainAhead']
-    print(df_to_save)
-    
-    dirext = issue + '_test1'
-    filename = "oos_equity_eval_" + dirext + ".csv" 
-    df_to_save.to_csv(filename, encoding='utf-8', index=False)
+        #  Format and print results        
+         
+        finalAccountBalance = accountBalance[iTradeDay]
+        print ('Final account balance: %.2f' %  finalAccountBalance)
+        numberTradeDays = iTradeDay        
+        numberTrades = iTradeNumber
+        print ("Number of trades:", numberTrades)
+        
+        from pandas import Series
+        
+        Sequity = Series(accountBalance[0:numberTradeDays-1])
+        
+        Sequity.plot()
+        plt.show(block=False)
+        
+        tradeWins = sum(1 for x in tradeGain if float(x) >= 1.0)
+        tradeLosses = sum(1 for x in tradeGain if float(x) < 1.0 and float(x) > 0)
+        print("Wins: ", tradeWins)
+        print("Losses: ", tradeLosses)
+        print("W/L: ", tradeWins/numberTrades)
+        
+        tradeWinsValue = sum((x*fixedTradeDollars)-fixedTradeDollars for x in tradeGain if float(x) >= 1.0)
+        tradeLossesValue = sum((x*fixedTradeDollars)-fixedTradeDollars for x in tradeGain if float(x) < 1.0 and float(x) > 0)
+        print('Total value of Wins:  %.2f' % tradeWinsValue)
+        print('Total value of Losses:  %.2f' % tradeLossesValue)
+        #(Win % x Average Win Size) – (Loss % x Average Loss Size)
+        print('Expectancy:  %.2f' % ((tradeWins/numberTrades)*(tradeWinsValue/tradeWins)-(tradeLosses/numberTrades)*(tradeLossesValue/tradeLosses)))
+        print("Fixed trade size: ", fixedTradeDollars)
+        
+        # Sharpe ratio...probably not correct math
+        #import math
+        #print(np.mean(tradeGainDollars))
+        #print(np.std(tradeGainDollars))
+        #print(math.sqrt(numberTradeDays)*(np.mean(tradeGainDollars)/np.std(tradeGainDollars)))
+        
+        
+        ####  end  ####     
+        df_to_save = tradesData[['valBeLong','gainAhead']].copy()
+        df_to_save.reset_index(level=df_to_save.index.names, inplace=True)
+        df_to_save.columns=['Date','signal','gainAhead']
+        print(df_to_save)
+        
+        dirext = issue + '_test1'
+        filename = "oos_equity_eval_" + dirext + ".csv" 
+        df_to_save.to_csv(filename, encoding='utf-8', index=False)
+
+        modelStartDate = modelEndDate  + BDay(1)
+        modelStartDate = modelStartDate.date()
+        modelEndDate = modelStartDate + relativedelta(months = oos_months) - BDay(1)
+        modelEndDate = modelEndDate.date()
+        
+        print('********************************************************')
+        print('\n********************************************************')
+        print('\n********************************************************\n\n\n\n')

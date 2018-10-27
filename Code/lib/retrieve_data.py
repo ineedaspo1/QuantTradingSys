@@ -118,8 +118,9 @@ class DataRetrieve:
                 df: Dataframe with columns dropped
            To update: Verify columns exist before dropping
         """
-        df2 = df[col_vals]
-        return df2
+        df2 = df.copy()
+        df3 = df2[col_vals]
+        return df3
     
     def save_obj(self, obj, name ):
         with open('../obj/'+ name + '.pkl', 'wb+') as f:
