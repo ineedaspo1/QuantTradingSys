@@ -58,7 +58,6 @@ if __name__ == "__main__":
 
     from plot_utils import *
     from retrieve_data import DataRetrieve, ComputeTarget
-    from transformers import *
     timeUtil = TimeUtility()
     plotIt = PlotUtility()
 
