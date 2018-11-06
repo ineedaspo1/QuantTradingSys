@@ -11,6 +11,10 @@ import sys
 sys.path.append('../lib')
 sys.path.append('../utilities')
 
+from plot_utils import PlotUtility
+from time_utils import TimeUtility
+from retrieve_data import *
+
 import datetime
 from dateutil.relativedelta import relativedelta
 from pandas.tseries.offsets import BDay
@@ -23,9 +27,9 @@ if __name__ == "__main__":
     
     issue = "tlt" 
     pivotDate = datetime.date(2018, 4, 2)
-    is_oos_ratio = 2
-    oos_months = 2
-    segments = 2
+    is_oos_ratio = 4
+    oos_months = 3
+    segments = 3
     
     # get segmented dates
     isOosDates = timeUtil.is_oos_data_split(issue, pivotDate, is_oos_ratio, oos_months, segments)
@@ -33,8 +37,8 @@ if __name__ == "__main__":
     is_start_date = isOosDates[1]
     oos_start_date = isOosDates[2]
     is_months = isOosDates[3]  
-    is_end_date = is_start_date + relativedelta(months=is_months)
-    oos_end_date = oos_start_date + relativedelta(months=oos_months)
+    is_end_date = isOosDates[4]
+    oos_end_date = isOosDates[5]
     
     #load data
     dataSet = dSet.read_issue_data(issue)   
@@ -50,15 +54,15 @@ if __name__ == "__main__":
                                         is_end_date
                                         )
         print ("IN SAMPLE")
-        print_beLongs(modelData)
+        #print_beLongs(modelData)
         plotIt.plot_beLongs("In Sample",
                             issue,
                             modelData,
                             is_start_date,
                             is_end_date
                             )
-        is_start_date = is_end_date  + BDay(1)
-        is_end_date = is_end_date + relativedelta(months=is_months) - BDay(1)
+        is_start_date = is_start_date + relativedelta(months=oos_months) + BDay(1)
+        is_end_date = is_start_date + relativedelta(months=is_months) - BDay(1)
         
         # OOS
         modelData = dSet.set_date_range(dataSet,
@@ -66,7 +70,7 @@ if __name__ == "__main__":
                                         oos_end_date
                                         )
         print ("OUT OF SAMPLE")
-        print_beLongs(modelData)
+        #print_beLongs(modelData)
         plotIt.plot_beLongs("Out of Sample",
                             issue,
                             modelData,

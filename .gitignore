@@ -25,6 +25,9 @@ Code/*/__pycache__/*.pyc
 # csv files
 *.csv
 
+# png files
+*.png
+
 # =========================
 # Operating System Files
 # =========================
@@ -53,3 +56,4 @@ Code/*/__pycache__/*.pyc
 Network Trash Folder
 Temporary Items
 .apdisk
+Code/models/print/oos_loop_ipython_files/qt_img1033459325730821.png
