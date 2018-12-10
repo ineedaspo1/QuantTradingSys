@@ -6,8 +6,6 @@ Created on Wed Jun  6 15:38:00 2018
 
 model_utils.py
 """
-from retrieve_data import *
-
 import numpy as np
 import pandas as pd
 import math
@@ -110,47 +108,104 @@ class ModelUtility:
         return model_results
 
 if __name__ == "__main__":
-    from plot_utils import *
+    from Code.lib.plot_utils import PlotUtility
+    from Code.lib.retrieve_data import DataRetrieve, ComputeTarget
+    from Code.lib.time_utils import TimeUtility
+    from Code.lib.feature_generator import FeatureGenerator
+    from Code.utilities.stat_tests import stationarity_tests
+    from Code.lib.config import current_feature, feature_dict
+    
+    plotIt = PlotUtility()
+    ct = ComputeTarget()
+    dSet = DataRetrieve()
+    featureGen = FeatureGenerator()
+    timeUtil = TimeUtility()
+    modelUtil = ModelUtility()
+    
     dataLoadStartDate = "2014-04-01"
     dataLoadEndDate = "2018-04-01"
     issue = "TLT"
+    # Set IS-OOS parameters
+    pivotDate = datetime.date(2018, 4, 2)
+    is_oos_ratio = 2
+    oos_months = 3
+    segments = 4
     
-    dSet = DataRetrieve()
     dataSet = dSet.read_issue_data(issue)
     
-    dataSet = dSet.set_date_range(dataSet, dataLoadStartDate,dataLoadEndDate)
+    dataSet = dSet.set_date_range(dataSet,
+                                  dataLoadStartDate,
+                                  dataLoadEndDate
+                                  )
+    #set beLong level
+    beLongThreshold = 0.000
+    dataSet = ct.setTarget(dataSet, "Long", beLongThreshold)
     
-    plotIt = PlotUtility()
+    input_dict = {} # initialize
+    input_dict = {'f1': 
+              {'fname' : 'ATR', 
+               'params' : [5],
+               'transform' : ['Zscore', 10]
+               },
+              'f2': 
+              {'fname' : 'RSI', 
+               'params' : [2],
+               'transform' : ['Scaler', 'robust']
+               },
+              'f3': 
+              {'fname' : 'DeltaATRRatio', 
+               'params' : [2, 10],
+               'transform' : ['Scaler', 'robust']
+               }
+             }    
+    dataSet2 = featureGen.generate_features(dataSet, input_dict)
     
-    plotTitle = "Closing price for " + issue + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
-    plotIt.plot_v1(dataSet['Close'], plotTitle)
+    isOosDates = timeUtil.is_oos_data_split(issue, pivotDate, is_oos_ratio, oos_months, segments)
+    dataLoadStartDate = isOosDates[0]
+    is_start_date = isOosDates[1]
+    oos_start_date = isOosDates[2]
+    is_months = isOosDates[3]
+    is_end_date = isOosDates[4]
+    oos_end_date = isOosDates[5]
     
-    beLongThreshold = 0
-    cT = ComputeTarget()
-    mmData = cT.setTarget(dataSet, "Long", beLongThreshold)
+    modelStartDate = is_start_date
+    modelEndDate = modelStartDate + relativedelta(months=is_months)
+    print("Issue: " + issue)
+    print("Start date: " + str(modelStartDate) + "  End date: " + str(modelEndDate))
     
-    addIndic1 = Indicators()
-    ind_list = [("RSI", 2.3),("ROC",5),("DPO",5),("ATR", 5)]
-    dataSet = addIndic1.add_indicators(dataSet, ind_list)
+    col_vals = [k for k,v in feature_dict.items() if v == 'Drop']
+    to_drop = ['Open','High','Low', 'gainAhead', 'Symbol', 'Date', 'Close']
+    for x in to_drop:
+        col_vals.append(x)
+    mmData = dSet.drop_columns(dataSet2, col_vals)
     
-    startDate = "2015-02-01"
-    endDate = "2015-06-30"
-    rsiDataSet = dataSet.ix[startDate:endDate]
-    #fig = plt.figure(figsize=(15,8  ))
-    fig, axes = plt.subplots(5,1, figsize=(15,8), sharex=True)
-
-    axes[0].plot(rsiDataSet['Close'], label=issue)
-    axes[1].plot(rsiDataSet['Close_RSI'], label='RSI');
-    axes[2].plot(rsiDataSet['Close_ROC'], label='ROC');
-    axes[3].plot(rsiDataSet['Close_DPO'], label='DPO');
-    axes[4].plot(rsiDataSet['Close_ATR'], label='ATR');
+    nrows = mmData.shape[0]
+    predictor_vars = "filler"
+    modelname = "RF"
+    model_results = []
     
-    # Bring subplots close to each other.
-    plt.subplots_adjust(hspace=0)
-    #plt.legend((issue,'RSI','ROC','DPO','ATR'),loc='upper left')
-    # Hide x labels and tick labels for all but bottom plot.
-    for ax in axes:
-        ax.label_outer()
-        ax.legend(loc='upper left', frameon=False)
+    ######################
+    # ML section
+    ######################
+    #  Make 'iterations' index vectors for the train-test split
+    iterations = 200
+         
+    dX, dy = modelUtil.prepare_for_classification(mmData)        
     
-    
+    sss = StratifiedShuffleSplit(n_splits=iterations,
+                                 test_size=0.33,
+                                 random_state=None
+                                 )
+            
+    model = RandomForestClassifier(n_jobs=-1,
+                                   random_state=55,
+                                   min_samples_split=10,
+                                   n_estimators=500,
+                                   max_features = 'auto',
+                                   min_samples_leaf = 3,
+                                   oob_score = 'TRUE'
+                                   )
+        
+    ### add issue, other data OR use dictionary to pass data!!!!!!
+    info_dict = {'issue':issue, 'modelStartDate':modelStartDate, 'modelEndDate':modelEndDate, 'modelname':modelname, 'nrows':nrows, 'predictors':predictor_vars}
+    model_results = modelUtil.model_and_test(dX, dy, model, model_results, sss, info_dict)

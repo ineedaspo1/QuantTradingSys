@@ -7,27 +7,27 @@ Created on Sat May 26 10:19:51 2018
 time_test_modelling.py
 Goal: Test and verify in sample and out of sample time splits for dataset
 """
-import sys
-sys.path.append('../lib')
-sys.path.append('../utilities')
-
-from plot_utils import PlotUtility
-from time_utils import TimeUtility
-from retrieve_data import *
+from Code.lib.plot_utils import PlotUtility
+from Code.lib.time_utils import TimeUtility
+from Code.lib.retrieve_data import DataRetrieve, ComputeTarget
+from Code.utilities.stat_tests import stationarity_tests, mean_and_variance
 
 import datetime
 from dateutil.relativedelta import relativedelta
 from pandas.tseries.offsets import BDay
+
+
 
 if __name__ == "__main__":
     plotIt = PlotUtility()
     timeUtil = TimeUtility()
     dSet = DataRetrieve()
     ct = ComputeTarget()
+    doPlot = False
     
     issue = "tlt" 
     pivotDate = datetime.date(2018, 4, 2)
-    is_oos_ratio = 4
+    is_oos_ratio = 2
     oos_months = 3
     segments = 3
     
@@ -48,19 +48,31 @@ if __name__ == "__main__":
     beLongThreshold = 0.0
     dataSet = ct.setTarget(dataSet, "Long", beLongThreshold)
     
+#    def stationarity_tests(s_df, signal, issue):
+#        print("=============================================================")
+#        adf_test(s_df, signal, issue)
+#        hurst_setup(s_df[signal][:], issue)
+#        print("========================================")
+    
     for i in range(segments):
         modelData = dSet.set_date_range(dataSet,
                                         is_start_date,
                                         is_end_date
                                         )
-        print ("IN SAMPLE")
+        print ("\n\n\nIN SAMPLE")
+        # Stationarity tests
+        stationarity_tests(modelData, 'Close', issue)
+        stationarity_tests(modelData, 'beLong', issue)
         #print_beLongs(modelData)
-        plotIt.plot_beLongs("In Sample",
-                            issue,
-                            modelData,
-                            is_start_date,
-                            is_end_date
-                            )
+        if doPlot:
+            plotIt.plot_beLongs("In Sample",
+                                issue,
+                                modelData,
+                                is_start_date,
+                                is_end_date
+                                )
+
+        
         is_start_date = is_start_date + relativedelta(months=oos_months) + BDay(1)
         is_end_date = is_start_date + relativedelta(months=is_months) - BDay(1)
         
@@ -69,14 +81,18 @@ if __name__ == "__main__":
                                         oos_start_date,
                                         oos_end_date
                                         )
-        print ("OUT OF SAMPLE")
+        print ("\n\n\nOUT OF SAMPLE")
+        stationarity_tests(modelData, 'Close', issue)
+        stationarity_tests(modelData, 'beLong', issue)
         #print_beLongs(modelData)
-        plotIt.plot_beLongs("Out of Sample",
-                            issue,
-                            modelData,
-                            oos_start_date,
-                            oos_end_date
-                            )
+        if doPlot:
+            plotIt.plot_beLongs("Out of Sample",
+                                issue,
+                                modelData,
+                                oos_start_date,
+                                oos_end_date
+                                )
+
         oos_start_date = oos_end_date  + BDay(1)
         oos_end_date = oos_end_date + relativedelta(months=oos_months) - BDay(1)
         

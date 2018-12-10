@@ -5,10 +5,11 @@ Created on Fri Sep 14 14:24:33 2018
 feature_generator.py
 """
 import numpy as np
-from config import current_feature, feature_dict
+from Code.lib.retrieve_data import DataRetrieve
 import functools
 import pickle
-from retrieve_data import DataRetrieve
+from Code.lib.config import current_feature, feature_dict
+
 
 class FeatureGenerator:
     def get_from_dict(self, dataDict, mapList):
@@ -21,6 +22,7 @@ class FeatureGenerator:
     def generate_features(self, df, input_dict):
         funcDict = DataRetrieve.load_obj(self, 'func_dict')
         for key in input_dict.keys():
+            print("============================")
             print(key)
             path = [key, 'fname']
             print('fname: ', self.get_from_dict(input_dict, path))
@@ -37,28 +39,26 @@ class FeatureGenerator:
             do_transform = self.get_from_dict(input_dict, path)
             
             if do_transform:
-                #print('!!!!', do_transform[0], )
+                print('!!!!', do_transform[0], )
                 pass_params = (do_transform[1::])
-                #print("pass params" , pass_params)
-                #print("Current feature: ", current_feature['Latest'])
+                print("pass params" , pass_params)
+                print("Current feature: ", current_feature['Latest'])
                 df = funcDict[do_transform[0]](df,
                                                current_feature['Latest'],
                                                *pass_params
                                                )
-                #print("Current feature: ", current_feature['Latest'])
+                print("Current feature: ", current_feature['Latest'])
         return df
     
 if __name__ == "__main__":
-    from plot_utils import *
-    from retrieve_data import *
-    from ta_momentum_studies import *
-    from ta_volume_studies import *
-    from ta_volatility_studies import *
-    from ta_overlap_studies import *
-    from transformers import *
-    from oscillator_studies import *
-    from candle_indicators import *
-    from config import current_feature, feature_dict
+    from Code.lib.plot_utils import PlotUtility as plotIt
+    from Code.lib.ta_momentum_studies import TALibMomentumStudies
+    from Code.lib.ta_volume_studies import TALibVolumeStudies, CustVolumeStudies
+    from Code.lib.ta_volatility_studies import TALibVolatilityStudies
+    from Code.lib.ta_overlap_studies import TALibOverlapStudies
+    from Code.lib.transformers import Transformers
+    from Code.lib.oscillator_studies import OscialltorStudies
+    from Code.lib.candle_indicators import CandleIndicators
     
     dataLoadStartDate = "2014-04-01"
     dataLoadEndDate = "2018-04-01"
@@ -75,7 +75,7 @@ if __name__ == "__main__":
     custVolSt = CustVolumeStudies()
     taLibOS = TALibOverlapStudies()
     featureGen = FeatureGenerator()
-    plotIt = PlotUtility()
+    #plotIt = PlotUtility()
     
     # move this dict to be read from file
 #    functionDict = {
@@ -277,7 +277,7 @@ if __name__ == "__main__":
                    'params' : [4]
                    }
                  }
-                  
+               
     df = featureGen.generate_features(df, input_dict)
             
     # Plot price and indicators
@@ -296,20 +296,4 @@ if __name__ == "__main__":
     corrDataSet = dSet.drop_columns(plotDataSet, col_vals)
     col_vals = [k for k,v in feature_dict.items() if v == 'Drop']
     corrDataSet = dSet.drop_columns(corrDataSet, col_vals)
-    
-    def correlation_matrix(df,size=10):
-        from matplotlib import pyplot as plt
-        from matplotlib import cm as cm
-        fig = plt.figure(figsize=(size, size))
-        ax1 = fig.add_subplot(111)
-        cmap = cm.get_cmap('jet', 30)
-        corr = df.corr()
-        cax = ax1.imshow(corr, interpolation="nearest", cmap=cmap)
-        ax1.grid(True)
-        plt.title('Feature Correlation')
-        plt.xticks(range(len(corr.columns)), corr.columns, rotation='vertical');
-        plt.yticks(range(len(corr.columns)), corr.columns);
-        # Add colorbar, make sure to specify tick locations to match desired ticklabels
-        fig.colorbar(cax, ticks=[-1, -.5, 0, .5 ,1])
-        plt.show()
-    correlation_matrix(corrDataSet)
+    plotIt.correlation_matrix(corrDataSet)

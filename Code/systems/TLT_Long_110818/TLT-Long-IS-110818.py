@@ -6,18 +6,18 @@ Created on Sat May 26 10:19:51 2018
 
 insample_sample_model.py
 """
+import sys
 import json
 
-from Code.lib.plot_utils import PlotUtility
-from Code.lib.time_utils import TimeUtility
-from Code.lib.retrieve_data import DataRetrieve, ComputeTarget
-from Code.lib.candle_indicators import CandleIndicators
-from Code.lib.transformers import Transformers
-from Code.lib.ta_momentum_studies import TALibMomentumStudies
-from Code.lib.model_utils import ModelUtility
-from Code.lib.feature_generator import FeatureGenerator
-from Code.utilities.stat_tests import stationarity_tests
-from Code.lib.config import current_feature, feature_dict
+from Code.lib.retrieve_data.plot_utils import PlotUtility
+from time_utils import TimeUtility
+from retrieve_data import DataRetrieve, ComputeTarget
+from candle_indicators import CandleIndicators
+from transformers import Transformers
+from ta_momentum_studies import TALibMomentumStudies
+from model_utils import ModelUtility
+from feature_generator import FeatureGenerator
+from config import current_feature, feature_dict
 import models_utils
 
 import pandas as pd
@@ -107,19 +107,14 @@ if __name__ == "__main__":
     
     # IS only
     for i in range(segments):        
-        mmData = dataSet[modelStartDate:modelEndDate].copy()
+        mmData = dataSet[modelStartDate:modelEndDate]
         nrows = mmData.shape[0]
         
         plotTitle = issue + ", " + str(modelStartDate) + " to " + str(modelEndDate)
         plotIt.plot_v2x(mmData, plotTitle)
-        plotIt.histogram(mmData['beLong'],
-                         x_label="beLong signal",
-                         y_label="Frequency",
-                         title = "beLong distribution for " + issue
-                         )        
+        plotIt.histogram(mmData['beLong'], x_label="beLong signal", y_label="Frequency", 
+          title = "beLong distribution for " + issue)        
         plt.show(block=False)
-        
-        stationarity_tests(mmData, 'Close', issue)
 
         col_vals = [k for k,v in feature_dict.items() if v == 'Drop']
         to_drop = ['Open','High','Low', 'gainAhead', 'Symbol', 'Date', 'Close']
@@ -127,7 +122,7 @@ if __name__ == "__main__":
             col_vals.append(x)
         mmData = dSet.drop_columns(mmData, col_vals)
         
-        #plotIt.correlation_matrix(mmData)
+        models_utils.correlation_matrix(mmData)
         
         names = mmData.columns.values.tolist()            
 
@@ -138,7 +133,7 @@ if __name__ == "__main__":
         # ML section
         ######################
         #  Make 'iterations' index vectors for the train-test split
-        iterations = 200
+        iterations = 100
              
         dX, dy = modelUtil.prepare_for_classification(mmData)        
         
@@ -152,7 +147,7 @@ if __name__ == "__main__":
                                        min_samples_split=10,
                                        n_estimators=500,
                                        max_features = 'auto',
-                                       min_samples_leaf = 3,
+                                       min_samples_leaf = 5,
                                        oob_score = 'TRUE'
                                        )
                 
@@ -212,9 +207,7 @@ if __name__ == "__main__":
                                         modelEndDate,
                                         valData
                                         )
-        
-        stationarity_tests(valData, 'Close', issue)
-        
+
         col_vals = [k for k,v in feature_dict.items() if v == 'Drop']
         to_drop = ['Open','High','Low', 'gainAhead', 'Symbol', 'Date', 'Close', 'beLong']
         for x in to_drop:

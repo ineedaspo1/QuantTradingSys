@@ -144,11 +144,11 @@ class ComputeTarget:
            To update: Added direction and correct code to identify
                long and short thresholds and correct signal
         """
-        df['gainAhead'] = ComputeTarget.gainAhead(df.Close)
+        df['gainAhead'] = self.gainAhead(df.Close)
         df['beLong'] = np.where(df.gainAhead>beLongThreshold,1,-1)
         return df
 
-    def gainAhead(p):
+    def gainAhead(self, p):
         """Computes change in the next 1 bar. A change of 1% is 0.01.
            The final value is unknown.  Its value is 0.0. 
            Args:
@@ -180,7 +180,7 @@ class ComputeTarget:
         return pc
         
 if __name__ == "__main__":
-    from plot_utils import *
+    from plot_utils import PlotUtility
     plotIt = PlotUtility()
     
     dataLoadStartDate = "2014-04-01"
@@ -229,7 +229,7 @@ if __name__ == "__main__":
     
     testFirstYear = "2014-04-01"
     testFinalYear = "2014-06-01"
-    qtPlot = targetDataSet.ix[testFirstYear:testFinalYear]
+    qtPlot = targetDataSet[testFirstYear:testFinalYear]
     
     plotTitle = "Closing price for " + issue + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
     plotIt.plot_v1(qtPlot['Close'], plotTitle)

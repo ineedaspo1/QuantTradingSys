@@ -6,13 +6,8 @@ Created on Wed Jun  6 15:38:00 2018
 
 ta_volume_studies.py
 """
-import sys
-sys.path.append('../lib')
-sys.path.append('../utilities')
-
 import talib as ta
-from config import *
-
+from Code.lib.config import current_feature, feature_dict
 
 class TALibVolumeStudies:
     """Group of Volume studies utilized fromTALib """
@@ -156,9 +151,8 @@ class CustVolumeStudies:
         return data
     
 if __name__ == "__main__":
-    from plot_utils import *
-    from retrieve_data import *
-    from config import *
+    from Code.lib.plot_utils import PlotUtility
+    from Code.lib.retrieve_data import DataRetrieve
     
     taLibVolSt = TALibVolumeStudies()
     custVolSt = CustVolumeStudies()

@@ -9,6 +9,7 @@ import matplotlib.pylab as plt
 import matplotlib as mpl
 import matplotlib.ticker as ticker
 import numpy as np
+from matplotlib import cm as cm
 
 class PlotUtility:
 
@@ -41,16 +42,17 @@ class PlotUtility:
         ax.grid(b=True, which='minor', color='r', linestyle='-', alpha=0.2)
         ax.minorticks_on()
         ax.tick_params(axis='y',which='minor',bottom='off')
+        plt.show(block=False)
         
     def plot_v2x(self, plotDataSet, title):
         numSubPlots = 2
         fig, axes = plt.subplots(numSubPlots, ncols=1, figsize=(numSubPlots*6,8), sharex=True)
-        buys = plotDataSet.ix[(plotDataSet['beLong'] > 0)]
-        sells = plotDataSet.ix[(plotDataSet['beLong'] < 0)]
+        buys = plotDataSet.loc[(plotDataSet['beLong'] > 0)]
+        sells = plotDataSet.loc[(plotDataSet['beLong'] < 0)]
         
         axes[0].plot(plotDataSet.index, plotDataSet['Close'])
-        axes[0].plot(buys.index, plotDataSet.ix[buys.index]['Close'], '^', markersize=10, color='g', label='Buy')
-        axes[0].plot(sells.index, plotDataSet.ix[sells.index]['Close'], 'v', markersize=10, color='r', label='Sell')
+        axes[0].plot(buys.index, plotDataSet.loc[buys.index]['Close'], '^', markersize=10, color='g', label='Buy')
+        axes[0].plot(sells.index, plotDataSet.loc[sells.index]['Close'], 'v', markersize=10, color='r', label='Sell')
         axes[1].plot(plotDataSet['beLong'], color='red', alpha =0.8)
         plt.subplots_adjust(hspace=0.05)
         fig.suptitle(title)
@@ -67,7 +69,8 @@ class PlotUtility:
             ax.minorticks_on()
             #ax.tick_params(axis='y',which='minor',bottom='off')
         #axes[1].set_yticks((-1,0,1), minor=False)
-        axes[1].yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.2f')) 
+        axes[1].yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.2f'))
+        plt.show(block=False)
         return fig, (axes[0], axes[1])
     
     def plot_beLongs(self, title, issue, df, start_date, end_date):
@@ -122,21 +125,34 @@ class PlotUtility:
             ax.xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
         plt.show()
         
+    def correlation_matrix(df,size=10):
+        fig = plt.figure(figsize=(size, size))
+        ax1 = fig.add_subplot(111)
+        cmap = cm.get_cmap('jet', 30)
+        corr = df.corr()
+        cax = ax1.imshow(corr, interpolation="nearest", cmap=cmap)
+        ax1.grid(True)
+        plt.title('Feature Correlation')
+        plt.xticks(range(len(corr.columns)), corr.columns, rotation='vertical');
+        plt.yticks(range(len(corr.columns)), corr.columns);
+        # Add colorbar, make sure to specify tick locations to match desired ticklabels
+        fig.colorbar(cax, ticks=[-1, -.5, 0, .5 ,1])
+        plt.show()
 
 if __name__ == "__main__":
+    from retrieve_data import DataRetrieve, ComputeTarget
+    dSet = DataRetrieve()
     plotIt = PlotUtility()
+    cT = ComputeTarget()
+    
     dataLoadStartDate = "2008-02-01"
     dataLoadEndDate = "2010-04-01"
-    issue = "XLV"
-    
-    from retrieve_data import *
-    dSet = DataRetrieve()
-    
+    issue = "TLT"
+
     dataSet = dSet.read_issue_data(issue)
     dataSet = dSet.set_date_range(dataSet, dataLoadStartDate,dataLoadEndDate)
     
     beLongThreshold = 0
-    cT = ComputeTarget()
     dataSet = cT.setTarget(dataSet, 
                            "Long", 
                            beLongThreshold

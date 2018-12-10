@@ -7,14 +7,10 @@ Created on Fri May 18 10:39:48 2018
 signal_stationarity_tests.py
 """
 
-import sys
-sys.path.append('../lib')
-
 # Import the Time Series library
 import statsmodels.tsa.stattools as ts
-from retrieve_issue_data import read_issue_data
+from Code.lib.retrieve_data import DataRetrieve, ComputeTarget
 from stat_tests import *
-from compute_target import *
 import pandas as pd
 import numpy as np
 import datetime

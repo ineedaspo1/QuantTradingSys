@@ -6,14 +6,14 @@ Created on Thu Sep 20 18:20:40 2018
 """
 
 if __name__ == "__main__":
-    from retrieve_data import *
-    from ta_momentum_studies import *
-    from ta_volume_studies import *
-    from ta_volatility_studies import *
-    from ta_overlap_studies import *
-    from transformers import *
-    from oscillator_studies import *
-    from candle_indicators import *
+    from Code.lib.retrieve_data import DataRetrieve
+    from Code.lib.ta_momentum_studies import TALibMomentumStudies
+    from Code.lib.ta_volume_studies import TALibVolumeStudies, CustVolumeStudies
+    from Code.lib.ta_volatility_studies import TALibVolatilityStudies
+    from Code.lib.ta_overlap_studies import TALibOverlapStudies
+    from Code.lib.transformers import Transformers
+    from Code.lib.oscillator_studies import OscialltorStudies
+    from Code.lib.candle_indicators import CandleIndicators
     taLibVolSt = TALibVolumeStudies()
     taLibMomSt = TALibMomentumStudies()
     transf = Transformers()

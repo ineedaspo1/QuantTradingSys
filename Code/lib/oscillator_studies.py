@@ -5,8 +5,7 @@ Created on Wed Jun  6 15:38:00 2018
 oscillator_studies.py
 """
 import numpy as np
-from config import *
-
+from Code.lib.config import current_feature, feature_dict
 
 class OscialltorStudies:
     """Group of oscillator-based indicator features"""
@@ -37,8 +36,8 @@ class OscialltorStudies:
         return df
 
 if __name__ == "__main__":
-    from plot_utils import *
-    from retrieve_data import *
+    from Code.lib.plot_utils import PlotUtility
+    from Code.lib.retrieve_data import DataRetrieve
     
     dSet = DataRetrieve()
     oscSt = OscialltorStudies()

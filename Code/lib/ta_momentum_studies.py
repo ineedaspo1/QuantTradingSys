@@ -5,7 +5,7 @@ Created on Wed Jun  6 15:38:00 2018
 ta_momentum_studies.py
 """
 import talib as ta
-from config import *
+from Code.lib.config import current_feature, feature_dict
 
 class TALibMomentumStudies:
     """Group of Momentum studies utilized fromTALib """
@@ -144,9 +144,9 @@ class TALibMomentumStudies:
         return df
 
 if __name__ == "__main__":
-    from plot_utils import *
-    from retrieve_data import *
-    from config import *
+    from Code.lib.plot_utils import PlotUtility
+    from Code.lib.retrieve_data import DataRetrieve
+    
     
     plotIt = PlotUtility()
     taLibMomSt = TALibMomentumStudies()

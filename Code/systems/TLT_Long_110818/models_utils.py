@@ -9,6 +9,9 @@ from matplotlib import cm as cm
 import numpy as np
 import pandas as pd
 
+from plot_utils import PlotUtility
+plotIt = PlotUtility()
+
 # This class provides the functionality we want. You only need to look at
 # this if you want to know how this works. It only needs to be defined
 # once, no need to muck around with its internals.
@@ -61,10 +64,7 @@ def cumulEquity(valData, tradesData, ceType):
     
 
 def plotPriceAndBeLong(issue, modelStartDate, modelEndDate, valData):
-    from Code.lib.plot_utils import PlotUtility
-    plotIt = PlotUtility()
     plotTitle = issue + "Close " + str(modelStartDate) + " to " + str(modelEndDate)
-    print(plotTitle)
     plotIt.plot_v2x(valData, plotTitle)
     plt.show(block=False)
     plotIt.histogram(valData['beLong'], x_label="beLong signal", y_label="Frequency", 
@@ -120,3 +120,16 @@ def plotPriceAndCumulEquity(issue, valData):
     ax2.label_outer()
     plt.show(block=0)
     
+def correlation_matrix(df,size=10):
+    fig = plt.figure(figsize=(size, size))
+    ax1 = fig.add_subplot(111)
+    cmap = cm.get_cmap('jet', 30)
+    corr = df.corr()
+    cax = ax1.imshow(corr, interpolation="nearest", cmap=cmap)
+    ax1.grid(True)
+    plt.title('Feature Correlation')
+    plt.xticks(range(len(corr.columns)), corr.columns, rotation='vertical');
+    plt.yticks(range(len(corr.columns)), corr.columns);
+    # Add colorbar, make sure to specify tick locations to match desired ticklabels
+    fig.colorbar(cax, ticks=[-1, -.5, 0, .5 ,1])
+    plt.show()

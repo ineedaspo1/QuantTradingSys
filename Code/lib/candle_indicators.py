@@ -5,8 +5,7 @@ Created on Wed Jun  6 15:38:00 2018
 candle_indicators.py
 """
 import numpy as np
-from config import *
-
+from Code.lib.config import current_feature, feature_dict
 
 class CandleIndicators:
     """Group of custom candle-based indicator features"""

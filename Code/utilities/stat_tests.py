@@ -3,8 +3,7 @@ from numpy.random import randn
 from numpy import cumsum, log, polyfit, sqrt, std, subtract
 from pylab import plot, show
 import sys
-sys.path.append('../lib')
-from retrieve_data import DataRetrieve
+from Code.lib.retrieve_data import DataRetrieve, ComputeTarget
 import statsmodels.tsa.stattools as ts
 """
 Created on Wed May  9 14:07:05 2018
@@ -14,15 +13,15 @@ Created on Wed May  9 14:07:05 2018
 statistical tests
 """
 
-def adf_test(df, issue):
-    print('\n====== ADF Test for Stationarity ======')
+def adf_test(df, signal, issue):
+    print('\n====== ADF Test for Stationarity for ',signal, "=======")
     print('Issue: ', issue)
     print('Start Date: ', df.index.min().strftime('%Y-%m-%d'))
     print('End Date: ', df.index.max().strftime('%Y-%m-%d'))
     # Add print of issue
     # Add interpretation of meaning
     # Add print of time frame
-    result = ts.adfuller(df['Close'], 1)
+    result = ts.adfuller(df[signal], 1)
     # p-value > 0.05: Accept the null hypothesis (H0), the data has a unit root and is non-stationary.
     # p-value <= 0.05: Reject the null hypothesis (H0), the data does not have a unit root and is stationary.
     print('\nADF Statistic: %f' % result[0])
@@ -34,29 +33,6 @@ def adf_test(df, issue):
     print('Critical Values:')
     for key, value in result[4].items():
         print('\t%s: %.3f' % (key, value))
-
-
-def adf_test_signal(df, issue):
-    print('\n====== ADF Test for Stationarity ======')
-    print('Issue: ', issue)
-    print('Start Date: ', df.index.min().strftime('%Y-%m-%d'))
-    print('End Date: ', df.index.max().strftime('%Y-%m-%d'))
-    # Add print of issue
-    # Add interpretation of meaning
-    # Add print of time frame
-    result = ts.adfuller(df['beLong'], 1)
-    # p-value > 0.05: Accept the null hypothesis (H0), the data has a unit root and is non-stationary.
-    # p-value <= 0.05: Reject the null hypothesis (H0), the data does not have a unit root and is stationary.
-    print('\nADF Statistic: %f' % result[0])
-    print('p-value: %f' % result[1])
-    if result[1] < 0.05:
-        print('** The signal is likely stationary **')
-    else:
-        print('** The signal is likely non-stationary **')
-    print('Critical Values:')
-    for key, value in result[4].items():
-        print('\t%s: %.3f' % (key, value))
-
 
 def hurst(df):
     closes = df
@@ -88,6 +64,11 @@ def hurst_setup(df, issue):
     print('Hurst(TR):    %.3f' % hurst(tr))
     print('Hurst(%s):   %.3f' % (issue, hurst(df)))
 
+def stationarity_tests(s_df, signal, issue):
+    print("=============================================================")
+    adf_test(s_df, signal, issue)
+    hurst_setup(s_df[signal][:], issue)
+    print("========================================")
 
 def mean_and_variance(value_series):
     # mean and varianace of series
@@ -102,6 +83,7 @@ def mean_and_variance(value_series):
 
 if __name__ == "__main__":
     dSet = DataRetrieve()
+    ct = ComputeTarget()
     issue = "xly"
     dataLoadStartDate = "2015-01-01"
     dataLoadEndDate = "2016-03-30"
@@ -109,11 +91,17 @@ if __name__ == "__main__":
     startDate = "2015-02-01"
     endDate = "2015-06-30"
     dataSet = dSet.read_issue_data(issue)
-    adfDataSet = dSet.set_date_range(
-        dataSet, dataLoadStartDate, dataLoadEndDate)
+    adfDataSet = dSet.set_date_range(dataSet,
+                                     dataLoadStartDate,
+                                     dataLoadEndDate
+                                     )
+    
+    #set beLong level
+    beLongThreshold = 0.0
+    adfDataSet = ct.setTarget(dataSet, "Long", beLongThreshold)
 
-    adf_test(adfDataSet, issue)
-
-    hurst_setup(adfDataSet['Close'][:], issue)
+    stationarity_tests(adfDataSet, 'Close', issue)
+    
+    mean_and_variance(adfDataSet['beLong'][:])
 
     # dataSet.Close.hist()

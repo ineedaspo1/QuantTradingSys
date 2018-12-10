@@ -5,7 +5,7 @@ Created on Wed Jun  6 15:38:00 2018
 ta_volatility_studies.py
 """
 import talib as ta
-from config import *
+from Code.lib.config import current_feature, feature_dict
 
 class TALibVolatilityStudies:
     """Group of Volatility studies utilized fromTALib """
@@ -133,11 +133,8 @@ class TALibVolatilityStudies:
         return df
 
 if __name__ == "__main__":
-    import sys
-    from plot_utils import *
-    from retrieve_data import *
-    from ta_overlap_studies import *
-    from config import *
+    from Code.lib.plot_utils import PlotUtility
+    from Code.lib.retrieve_data import DataRetrieve
     
     vStud = TALibVolatilityStudies()
     dSet = DataRetrieve()

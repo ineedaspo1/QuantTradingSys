@@ -7,8 +7,7 @@ ta_overlap_studies.py
 import talib as ta
 import numpy as np
 import matplotlib.pyplot as plt
-from config import *
-
+from Code.lib.config import current_feature, feature_dict
 
 class TALibOverlapStudies:
     """Group of Momentum studies utilized fromTALib """
@@ -267,14 +266,13 @@ class TALibOverlapStudies:
         return df
 
 if __name__ == "__main__":   
-    from plot_utils import *
-    from retrieve_data import *
-    from config import *
+    from Code.lib.plot_utils import PlotUtility
+    from Code.lib.retrieve_data import DataRetrieve
     
     dataLoadStartDate = "2014-04-01"
     dataLoadEndDate = "2018-04-01"
     issue = "TLT"
-    feature_dict = {}
+    #feature_dict = {}
 
     taLibOS = TALibOverlapStudies()
 
@@ -312,7 +310,7 @@ if __name__ == "__main__":
     #  top.plot(ind, plotDF['Pri']) #
     #  bottom.bar(ind, plotDF['Volume'])
     top.plot(ind,
-             plotDF['Pri'],
+             plotDF['Close'],
              'k-', markersize=3,
              label=issue)
     top.plot(ind,
@@ -357,7 +355,7 @@ if __name__ == "__main__":
     #  top.plot(ind, plotDF['Pri']) #
     #  bottom.bar(ind, plotDF['Volume'])
     top.plot(ind,
-             plotDF['Pri'],
+             plotDF['Close'],
              'k-',
              markersize=3,
              label=issue)
@@ -403,7 +401,7 @@ if __name__ == "__main__":
     #  top.plot(ind, plotDF['Pri']) #
     #  bottom.bar(ind, plotDF['Volume'])
     top.plot(ind,
-             plotDF['Pri'],
+             plotDF['Close'],
              'k-',
              markersize=3,
              label=issue

@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import RobustScaler
 from scipy.stats import norm
-from config import *
+from Code.lib.config import current_feature, feature_dict
 
 class Transformers:
     """Various signal transformation functions"""
@@ -189,44 +189,44 @@ class Transformers:
         return df
 
 if __name__ == "__main__":
-    current_feature = {}
-    from plot_utils import *
-    from retrieve_data import *
-    from config import *
-
-    from oscillator_studies import *
-    from ta_volume_studies import *
-    from ta_momentum_studies import *
-    from ta_volatility_studies import *
+    from Code.lib.plot_utils import PlotUtility
+    from Code.lib.retrieve_data import DataRetrieve
+    from Code.lib.transformers import Transformers
+    from Code.lib.oscillator_studies import OscialltorStudies
+    from Code.lib.ta_momentum_studies import TALibMomentumStudies
+    from Code.lib.ta_volatility_studies import TALibVolatilityStudies
+    from Code.lib.config import current_feature, feature_dict
 
     dataLoadStartDate = "2014-04-01"
     dataLoadEndDate = "2018-04-01"
     issue = "TLT"
     
-    taLibVolSt = TALibVolumeStudies()
-    plotIt = PlotUtility()
-
-    dSet = DataRetrieve()
-    dataSet = dSet.read_issue_data(issue)
-    dataSet = dSet.set_date_range(dataSet, dataLoadStartDate,dataLoadEndDate)
-
-    oscSt = OscialltorStudies()
-    dataSet = oscSt.detrend_PO(dataSet, 'Close', 50)
-
-    taLibMomSt = TALibMomentumStudies()
-    dataSet = taLibMomSt.RSI(dataSet, 20)
-    dataSet = taLibMomSt.rate_OfChg(dataSet, 50)
-    
     vStud = TALibVolatilityStudies()
+    taLibMomSt = TALibMomentumStudies()
+    plotIt = PlotUtility()
+    oscSt = OscialltorStudies()
+    dSet = DataRetrieve()
+    transf = Transformers()
+    
+    dataSet = dSet.read_issue_data(issue)
+    dataSet = dSet.set_date_range(dataSet,
+                                  dataLoadStartDate,
+                                  dataLoadEndDate
+                                  )
+    
+    dataSet = oscSt.detrend_PO(dataSet, 'Close', 50)
+    dataSet = taLibMomSt.RSI(dataSet, 20)
+    dataSet = taLibMomSt.rate_OfChg(dataSet, 50) 
     dataSet = vStud.ATR(dataSet, 30)
     
+    print(feature_dict)
     zScore_lb = 20
-    transf = Transformers()
     transfList = list(feature_dict.keys())
     for i in transfList:
         print(i)
+        current_feature['Latest'] = i
         dataSet= transf.zScore(dataSet, i, zScore_lb)
-
+    print(feature_dict)
     # Plot price and indicators
     startDate = "2015-02-01"
     endDate = "2015-06-30"
