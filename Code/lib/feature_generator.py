@@ -22,32 +22,31 @@ class FeatureGenerator:
     def generate_features(self, df, input_dict):
         funcDict = DataRetrieve.load_obj(self, 'func_dict')
         for key in input_dict.keys():
-            print("============================")
             print(key)
             path = [key, 'fname']
-            print('fname: ', self.get_from_dict(input_dict, path))
+            #print('fname: ', self.get_from_dict(input_dict, path))
             func_name = self.get_from_dict(input_dict, path)
             
             path = [key, 'params']
-            print('params: ', self.get_from_dict(input_dict, path))
+            #print('params: ', self.get_from_dict(input_dict, path))
             params = self.get_from_dict(input_dict, path)  
             df = funcDict[func_name](df, *params)
             print("Current feature: ", current_feature['Latest'])
             
             path = [key, 'transform']
-            print('transform: ', self.get_from_dict(input_dict, path), '\n')
+            print('transform: ', self.get_from_dict(input_dict, path))
             do_transform = self.get_from_dict(input_dict, path)
             
             if do_transform:
-                print('!!!!', do_transform[0], )
+                #print('!!!!', do_transform[0], )
                 pass_params = (do_transform[1::])
-                print("pass params" , pass_params)
-                print("Current feature: ", current_feature['Latest'])
+                #print("pass params" , pass_params)
+                #print("Current feature: ", current_feature['Latest'])
                 df = funcDict[do_transform[0]](df,
                                                current_feature['Latest'],
                                                *pass_params
                                                )
-                print("Current feature: ", current_feature['Latest'])
+                #print("Current feature: ", current_feature['Latest'])
         return df
     
 if __name__ == "__main__":

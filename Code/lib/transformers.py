@@ -7,8 +7,11 @@ transformers.py
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import RobustScaler
+from sklearn.preprocessing import MinMaxScaler
 from scipy.stats import norm
 from Code.lib.config import current_feature, feature_dict
+
+'''Normalization is a rescaling of the data from the original range so that all values are within the range of 0 and 1'''
 
 class Transformers:
     """Various signal transformation functions"""
@@ -26,8 +29,6 @@ class Transformers:
         feature_dict[current_feature['Latest']] = 'Drop'
         current_feature['Latest'] = col_name
         feature_dict[col_name] = 'Keep'
-        
-        
         
         nrows = df.shape[0]
         st = np.zeros(nrows)
@@ -90,10 +91,13 @@ class Transformers:
         current_feature['Latest'] = col_name
         df[col_name] = df[col]
         
-        
         if type == 'median':
             rm = df[col].rolling(window=lb, center=False).median()
             df[col_name] = df[col] - rm
+        # scale values skipping nan's
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        null_index = df[col_name].isnull()
+        df.loc[~null_index, [col_name]] = scaler.fit_transform(df.loc[~null_index, [col_name]])
         return df
 
     def scaler(self, df, col, type):
@@ -116,18 +120,21 @@ class Transformers:
         feature_dict[col_name] = 'Keep'
         feature_dict[current_feature['Latest']] = 'Drop'
         current_feature['Latest'] = col_name
-        
-        
+            
         df = self.clean_dataset(df)
         
         df[col_name] = df[col]
         # current only coded to use RobustScaler
         scaler = RobustScaler(quantile_range=(25, 75))
         df[[col_name]] = scaler.fit_transform(df[[col_name]])
+        # scale values skipping nan's
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        null_index = df[col_name].isnull()
+        df.loc[~null_index, [col_name]] = scaler.fit_transform(df.loc[~null_index, [col_name]])
         return df
 
     def normalizer(self, dataSet, colname, n,
-                   mode = 'scale', linear = False):
+                   mode = 'total', linear = False):
         """
              It computes the normalized value on the stats of n values
              ( Modes: total or scale ) using the formulas from the book
@@ -176,7 +183,7 @@ class Transformers:
             else:
                 # even if strange values are given, it will perform full
                 # normalization with compression as default
-                v = norm.cdf(0.5*(df.iloc[i]-F50)/(F75-F25))-0.5
+                v = norm.cdf(1.0*(df.iloc[i]-F50)/(F75-F25))
             #print (v)
             temp.append(v)
         dataSet[new_colname] = temp[::-1]
@@ -195,6 +202,7 @@ if __name__ == "__main__":
     from Code.lib.oscillator_studies import OscialltorStudies
     from Code.lib.ta_momentum_studies import TALibMomentumStudies
     from Code.lib.ta_volatility_studies import TALibVolatilityStudies
+    from Code.lib.feature_generator import FeatureGenerator
     from Code.lib.config import current_feature, feature_dict
 
     dataLoadStartDate = "2014-04-01"
@@ -207,6 +215,7 @@ if __name__ == "__main__":
     oscSt = OscialltorStudies()
     dSet = DataRetrieve()
     transf = Transformers()
+    featureGen = FeatureGenerator()
     
     dataSet = dSet.read_issue_data(issue)
     dataSet = dSet.set_date_range(dataSet,
@@ -214,79 +223,50 @@ if __name__ == "__main__":
                                   dataLoadEndDate
                                   )
     
-    dataSet = oscSt.detrend_PO(dataSet, 'Close', 50)
-    dataSet = taLibMomSt.RSI(dataSet, 20)
-    dataSet = taLibMomSt.rate_OfChg(dataSet, 50) 
-    dataSet = vStud.ATR(dataSet, 30)
+    input_dict = {} # initialize 
+    input_dict = {'f1': 
+                  {'fname' : 'RSI', 
+                   'params' : [10],
+                   'transform' : ['Zscore', 5]
+                   },
+                  'f2':
+                   {'fname' : 'RSI', 
+                   'params' : [10],
+                   'transform' : ['Normalized', 5]
+                   },
+                  'f3': 
+                  {'fname' : 'RSI',
+                   'params' : [10],
+                   'transform' : ['Scaler', 'robust']
+                   },
+                  'f4': 
+                  {'fname' : 'RSI', 
+                   'params' : [10],
+                   'transform' : ['Center', 5]
+                   }
+#                  'f5': 
+#                  {'fname' : 'RSI', 
+#                   'params' : [3],
+#                   'transform' : ['Scaler', 'robust']
+#                   },
+#                  'f6': 
+#                  {'fname' : 'RSI', 
+#                   'params' : [10],
+#                   'transform' : ['Center', 3]
+#                   }
+                  }
     
-    print(feature_dict)
-    zScore_lb = 20
-    transfList = list(feature_dict.keys())
-    for i in transfList:
-        print(i)
-        current_feature['Latest'] = i
-        dataSet= transf.zScore(dataSet, i, zScore_lb)
-    print(feature_dict)
+    dataSet = featureGen.generate_features(dataSet, input_dict)
+            
     # Plot price and indicators
-    startDate = "2015-02-01"
+    startDate = "2014-02-01"
     endDate = "2015-06-30"
 
     plotDataSet = dataSet[startDate:endDate]
+    
     plot_dict = {}
     plot_dict['Issue'] = issue
     plot_dict['Plot_Vars'] = list(feature_dict.keys())
     plot_dict['Volume'] = 'Yes'
     plotIt.price_Ind_Vol_Plot(plot_dict, plotDataSet)
-
-    ######################
-    #### testing Lag
-    feature_dict  = {}
-    lag_var = 'Close'
-    lags = 5
-    dataSet = transf.add_lag(dataSet, lag_var, lags)
-    # Plot price and lags
-    startDate = "2015-02-01"
-    endDate = "2015-04-30"
-    lagDataSet = dataSet[startDate:endDate]
-
-     # Set up plot dictionary
-    plot_dict = {}
-    plot_dict['Issue'] = issue
-    plot_dict['Plot_Vars'] = list(feature_dict.keys())
-    plot_dict['Volume'] = 'Yes'
-    plotIt.price_Ind_Vol_Plot(plot_dict, lagDataSet)
-
-    ####################
-    # Testing normalized, centered, scaled
-    feature_dict  = {}
-
-    dataSet = taLibMomSt.RSI(dataSet, 20)
-    col_name = current_feature['Latest']
-    print(col_name)
     
-#    def clean_dataset(df):
-#        assert isinstance(df, pd.DataFrame), "df needs to be a pd.DataFrame"
-#        df.dropna(inplace=True)
-#        indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
-#        return df
-    
-    dataSet = transf.clean_dataset(dataSet)
-
-    dataSet = transf.scaler(dataSet, col_name, 'robust')
-
-    dataSet = transf.centering(dataSet, col_name, 14)
-
-    dataSet = transf.normalizer(dataSet, col_name, 100, mode='total',
-                                linear=False
-                                )
-
-    startDate = "2015-10-01"
-    endDate = "2016-06-30"
-    normDataSet = dataSet[startDate:endDate]
-
-     # Set up plot dictionary
-    plot_dict = {}
-    plot_dict['Issue'] = issue
-    plot_dict['Plot_Vars'] = list(feature_dict.keys())
-    plot_dict['Volume'] = 'Yes'
-    plotIt.price_Ind_Vol_Plot(plot_dict, normDataSet)

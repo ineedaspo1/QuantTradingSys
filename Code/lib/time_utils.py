@@ -36,15 +36,15 @@ class TimeUtility:
         is_end_date = is_start_date + relativedelta(months=is_months)
         oos_end_date = oos_start_date + relativedelta(months=oos_months)
 
-        print("Segments: " + str(segments))
-        print("IS OOS Ratio: " + str(is_oos_ratio))
-        print("OOS months: " + str(oos_months))
-        print("IS Months: " + str(is_months))
-        print("Months to load: " + str(months_to_load))
-        print("Data Load Date: ", data_start_date)
-        print("In Sample Start  Date: ", is_start_date)
-        print("Out of Sample Start Date: ", oos_start_date)
-        print("Pivot Date: ", pivot_date)
+        print('{0:>30} {1:}'.format("Segments: ", segments))
+        print('{0:>30} {1:}'.format("IS OOS Ratio: ", is_oos_ratio))
+        print('{0:>30} {1:}'.format("OOS months: ", oos_months))
+        print('{0:>30} {1:}'.format("IS Months: ", is_months))
+        print('{0:>30} {1:}'.format("Months to load: ", months_to_load))
+        print('{0:>30} {1:}'.format("Data Load Date: ", data_start_date))
+        print('{0:>30} {1:}'.format("IS Start  Date: ", is_start_date))
+        print('{0:>30} {1:}'.format("OOS Start Date: ", oos_start_date))
+        print('{0:>30} {1:}'.format("Pivot Date: ", pivot_date))
         return_dates = (data_start_date,
                         is_start_date,
                         oos_start_date,

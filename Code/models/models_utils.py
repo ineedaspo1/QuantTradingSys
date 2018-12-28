@@ -63,8 +63,7 @@ def cumulEquity(valData, tradesData, ceType):
 def plotPriceAndBeLong(issue, modelStartDate, modelEndDate, valData):
     from Code.lib.plot_utils import PlotUtility
     plotIt = PlotUtility()
-    plotTitle = issue + "Close " + str(modelStartDate) + " to " + str(modelEndDate)
-    print(plotTitle)
+    plotTitle = "Close " + str(modelStartDate) + " to " + str(modelEndDate)
     plotIt.plot_v2x(valData, plotTitle)
     plt.show(block=False)
     plotIt.histogram(valData['beLong'], x_label="beLong signal", y_label="Frequency", 
@@ -72,12 +71,8 @@ def plotPriceAndBeLong(issue, modelStartDate, modelEndDate, valData):
     plt.show(block=False)
 
 def plotPriceAndTradeSignals(valData):
-    fig = plt.figure(figsize=(12,8))
-    #plt.figure(figsize=(9,4))
-    #plt.title('Comparison of beLong vs. Predicted beLong')
-    plt.subplots_adjust(hspace=0.05)
-    fig.suptitle('Comparison of beLong vs. Predicted beLong')
-    #plt.title('Comparison of beLong vs. Predicted beLong')
+    fig = plt.figure(figsize=(10,6))
+    fig.subplots_adjust(hspace=0.05)
     ax1 = plt.subplot2grid((5,1), (0,0), rowspan=3, colspan=1)
     ax2 = plt.subplot2grid((5,1), (3,0), rowspan=1, colspan=1)
     ax3 = plt.subplot2grid((5,1), (4,0), rowspan=1, colspan=1)
@@ -85,11 +80,11 @@ def plotPriceAndTradeSignals(valData):
     ax2.plot(valData['valBeLong'], color='green', alpha =0.6)
     ax1.plot(valData['Close'])
     ax3.plot(valData['beLong'], color='purple', alpha =0.6)
-    
+    ax1.set_title('Comparison of beLong vs. Predicted beLong')
     ax1.label_outer()
     ax2.label_outer()
-    ax2.tick_params(axis='x',which='major',bottom=True)
-    
+    ax2.tick_params(axis='x',which='major',bottom=True, rotation=45)
+    fig.autofmt_xdate()
     axes = [ax1, ax2, ax3]
     for x in range(len(axes)):
         axes[x].grid(True, which='major', color='k', linestyle='-', alpha=0.6)
@@ -100,11 +95,10 @@ def plotPriceAndTradeSignals(valData):
     plt.show(block=True)
     
 def plotPriceAndCumulEquity(issue, valData):
-    fig = plt.figure(figsize=(12,8))
-    fig.suptitle(issue + ' TWR for All, beLong, and valBeLong')
+    fig = plt.figure(figsize=(10,5))
     ax1 = fig.add_subplot(111)
     ax1.plot(valData.equityBeLongSignals, color='green',label='BeLong')
-    ax1.plot(valData.equityAllSignals, color='blue',label='Equity')
+    #ax1.plot(valData.equityAllSignals, color='blue',label='Equity')
     ax1.plot(valData.equityValBeLongSignals, color='purple',label='ValBeLong')
     
     ax1.legend(loc='upper left', frameon=True, fontsize=8)
@@ -113,10 +107,11 @@ def plotPriceAndCumulEquity(issue, valData):
     ax1.minorticks_on()
     ax1.grid(True, which='major', color='k', linestyle='-', alpha=0.6)
     ax1.grid(True, which='minor', color='r', linestyle='-', alpha=0.2)
-    
+    ax1.set_title('TWR for beLong, and valBeLong')
     ax2 = ax1.twinx()
     ax2.plot(valData.Close, color='black',alpha=0.6,label='CLOSE',linestyle='--')
     ax2.legend(loc='center left', frameon=True, fontsize=8)
     ax2.label_outer()
+    fig.autofmt_xdate()
     plt.show(block=0)
     

@@ -10,6 +10,7 @@ import matplotlib as mpl
 import matplotlib.ticker as ticker
 import numpy as np
 from matplotlib import cm as cm
+import pandas as pd
 
 class PlotUtility:
 
@@ -31,7 +32,7 @@ class PlotUtility:
         return fig, ax
     
     def histogram(self, data, x_label, y_label, title):
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(6,2))
         ax.hist(data, color = '#539caf', bins = 3)
         ax.set_ylabel(y_label)
         ax.set_xlabel(x_label)
@@ -46,7 +47,7 @@ class PlotUtility:
         
     def plot_v2x(self, plotDataSet, title):
         numSubPlots = 2
-        fig, axes = plt.subplots(numSubPlots, ncols=1, figsize=(numSubPlots*6,8), sharex=True)
+        fig, axes = plt.subplots(numSubPlots, ncols=1, figsize=(numSubPlots*5,6), sharex=True)
         buys = plotDataSet.loc[(plotDataSet['beLong'] > 0)]
         sells = plotDataSet.loc[(plotDataSet['beLong'] < 0)]
         
@@ -55,7 +56,8 @@ class PlotUtility:
         axes[0].plot(sells.index, plotDataSet.loc[sells.index]['Close'], 'v', markersize=10, color='r', label='Sell')
         axes[1].plot(plotDataSet['beLong'], color='red', alpha =0.8)
         plt.subplots_adjust(hspace=0.05)
-        fig.suptitle(title)
+        #fig.suptitle(title)
+        axes[0].set_title(title)
         fig.autofmt_xdate()
         for ax in axes:
             ax.label_outer()
@@ -125,8 +127,9 @@ class PlotUtility:
             ax.xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
         plt.show()
         
-    def correlation_matrix(df,size=10):
-        fig = plt.figure(figsize=(size, size))
+    def correlation_matrix(self, df):
+        from matplotlib import pyplot as plt
+        fig = plt.figure()
         ax1 = fig.add_subplot(111)
         cmap = cm.get_cmap('jet', 30)
         corr = df.corr()
@@ -138,6 +141,20 @@ class PlotUtility:
         # Add colorbar, make sure to specify tick locations to match desired ticklabels
         fig.colorbar(cax, ticks=[-1, -.5, 0, .5 ,1])
         plt.show()
+        
+    def plot_corr(df,size=10):
+        '''Function plots a graphical correlation matrix for each pair of columns in the dataframe.
+    
+        Input:
+            df: pandas DataFrame
+            size: vertical and horizontal size of the plot'''
+        cmdf = pd.DataFrame()
+        cmdf = df.copy()
+        cm = cmdf.corr()
+        fig, ax = plt.subplots(figsize=(size, size))
+        ax.matshow(cm)
+        plt.xticks(range(len(cm.columns)), cm.columns);
+        plt.yticks(range(len(cm.columns)), cm.columns);
 
 if __name__ == "__main__":
     from retrieve_data import DataRetrieve, ComputeTarget
@@ -188,5 +205,7 @@ if __name__ == "__main__":
     plotTitle = issue + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
     plotIt.plot_v2x(plotDataSet, plotTitle)
     
-    plotIt.plot_beLongs("Plot of beLongs", issue, plotDataSet, dataLoadStartDate, dataLoadEndDate)
+    #plotIt.plot_beLongs("Plot of beLongs", issue, plotDataSet, dataLoadStartDate, dataLoadEndDate)
+    
+    plotIt.correlation_matrix(dataSet)
     
