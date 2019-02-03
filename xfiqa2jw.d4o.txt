@@ -1,0 +1,39 @@
+﻿so many changes
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch master
+# Your branch is up-to-date with 'origin/master'.
+#
+# Changes to be committed:
+#	new file:   Code/lib/model_algos.py
+#	modified:   Code/lib/transformers.py
+#	modified:   Code/models/insample_oosample_intertwined_combined_model.py
+#	modified:   Code/models/model_data/TLT_insample_model_RF.pkl
+#	modified:   Code/models/tms_part2_position_sample_v1.py
+#	new file:   Code/notebooks/.ipynb_checkpoints/Correlation - Time lag, DPO-checkpoint.ipynb
+#	new file:   Code/notebooks/.ipynb_checkpoints/Correlation - Volatility Studies-checkpoint.ipynb
+#	new file:   Code/notebooks/.ipynb_checkpoints/Correlation - Volume Studies-checkpoint.ipynb
+#	modified:   Code/notebooks/.ipynb_checkpoints/IS Model Analysis-Confusion Matrix and Model Functions-checkpoint.ipynb
+#	renamed:    Code/notebooks/Investigation of classification algorithms.ipynb -> Code/notebooks/.ipynb_checkpoints/Investigation of classification algorithms (To do)-checkpoint.ipynb
+#	new file:   Code/notebooks/.ipynb_checkpoints/TMS Part 2 Dev - Start to Finish TLT-checkpoint.ipynb
+#	new file:   Code/notebooks/.ipynb_checkpoints/Untitled-checkpoint.ipynb
+#	modified:   Code/notebooks/Correlation - Momentum.ipynb
+#	modified:   Code/notebooks/Correlation - Overlap Studies.ipynb
+#	new file:   Code/notebooks/Correlation - Time lag, DPO.ipynb
+#	new file:   Code/notebooks/Correlation - Volatility Studies.ipynb
+#	new file:   Code/notebooks/Correlation - Volume Studies.ipynb
+#	modified:   Code/notebooks/Correlation - examining and dropping highly correlated.ipynb
+#	modified:   Code/notebooks/Feature Importance.ipynb
+#	modified:   Code/notebooks/IS Model Analysis-Confusion Matrix and Model Functions.ipynb
+#	modified:   Code/notebooks/IS Model Analysis-Model Split Method Investigation.ipynb
+#	renamed:    Code/notebooks/.ipynb_checkpoints/Investigation of classification algorithms-checkpoint.ipynb -> Code/notebooks/Investigation of classification algorithms (To do).ipynb
+#	new file:   Code/notebooks/TLT-Long-system-1806-V1/system_dict.json
+#	new file:   Code/notebooks/TLT-Long-system-7295-V1/system_dict.json
+#	new file:   Code/notebooks/TLT-Long-system-7973-V1/feature_dict.json
+#	new file:   Code/notebooks/TLT-Long-system-7973-V1/raw-features-TLT-Long-system-7973-V1.pkl
+#	new file:   Code/notebooks/TLT-Long-system-7973-V1/system_dict.json
+#	new file:   Code/notebooks/TMS Part 2 Dev - Start to Finish TLT.ipynb
+#	new file:   Code/notebooks/Untitled.ipynb
+#
+

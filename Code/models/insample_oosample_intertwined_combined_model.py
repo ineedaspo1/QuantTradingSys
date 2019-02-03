@@ -123,6 +123,27 @@ if __name__ == "__main__":
     oosModelStartDate = oos_start_date
     oosModelEndDate = oosModelStartDate + relativedelta(months=oos_months)
     
+    # Correlation study
+    corrData = dataSet[modelStartDate:oosModelEndDate].copy()
+    col_vals = [k for k,v in feature_dict.items() if v == 'Drop']
+    to_drop = ['Open','High','Low', 'gainAhead', 'Symbol', 'Date', 'Close', 'beLong']
+    for x in to_drop:
+        col_vals.append(x)
+    corrData = dSet.drop_columns(corrData, col_vals)
+
+    plotIt.correlation_matrix(corrData)
+    
+    # Create correlation matrix
+    corr_matrix = corrData.corr()
+    # Select upper triangle of correlation matrix
+    upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(np.bool))
+    # Find index of feature columns with correlation greater than 0.85
+    to_drop = [column for column in upper.columns if any(upper[column] > 0.85)]
+    print(to_drop)
+    for x in to_drop:
+        feature_dict[x] = 'Drop'
+    
+    
     # initialize dataframes for trade analysis
     tradesDataFull = pd.DataFrame()
     valDataFull = pd.DataFrame()
@@ -171,9 +192,6 @@ if __name__ == "__main__":
         for x in to_drop:
             col_vals.append(x)
         mmData = dSet.drop_columns(mmData, col_vals)
-        
-        # Correlation plots
-        plotIt.correlation_matrix(mmData)
         
         names = mmData.columns.values.tolist()            
 

@@ -43,13 +43,13 @@ class Transformers:
         df[col_name] = z
         return df
 
-    def add_lag(self, df, lag_var, lags):
+    def add_lag(self, df, lag_var, lag):
         """Add lag to any time-based series
 
             Args:
                 df: dataframe column
                 lag_var: indicator to be lagged
-                lags: number of lags to add
+                lag: distance to lag
                 feature_dict: Dictionary of added features
             Returns:
                 Dataframe with lagged indicator added
@@ -61,9 +61,10 @@ class Transformers:
                         lags,
                         feature_dict)
         """
-        for i in range(0, lags):
-            df[lag_var + "_lag" + str(i+1)] = df[lag_var].shift(i+1)
-            feature_dict[lag_var + "_lag" + str(i+1)] = 'Keep'
+        col_name = lag_var + "_lag" + str(lag)
+        current_feature['Latest'] = col_name
+        feature_dict[col_name] = 'Keep'
+        df[col_name] = df[lag_var].shift(lag)
         return df
 
     def centering(self, df, col, lb=14, type='median'):
@@ -243,12 +244,12 @@ if __name__ == "__main__":
                   {'fname' : 'RSI', 
                    'params' : [10],
                    'transform' : ['Center', 5]
+                   },
+                  'f5': 
+                  {'fname' : 'Lag', 
+                   'params' : ['Close', 3],
+                   'transform' : ['Normalized', 20]
                    }
-#                  'f5': 
-#                  {'fname' : 'RSI', 
-#                   'params' : [3],
-#                   'transform' : ['Scaler', 'robust']
-#                   },
 #                  'f6': 
 #                  {'fname' : 'RSI', 
 #                   'params' : [10],

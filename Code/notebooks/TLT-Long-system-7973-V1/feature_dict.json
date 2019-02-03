@@ -1,0 +1,20 @@
+{
+    "ATR_5": "Drop",
+    "ATR_5_Normalized": "Keep",
+    "ATRratio_S10_L30": "Drop",
+    "ATRratio_S10_L30_Normalized": "Keep",
+    "CCI_10": "Drop",
+    "CCI_10_Normalized": "Keep",
+    "CMO_10": "Drop",
+    "CMO_10_Normalized": "Keep",
+    "Close_lag3": "Drop",
+    "Close_lag3_Normalized": "Keep",
+    "DeltaATRratio_S2_L10": "Drop",
+    "DeltaATRratio_S2_L10_Scaled": "Keep",
+    "PPO_f12_s26": "Drop",
+    "PPO_f12_s26_Normalized": "Keep",
+    "ROC_10": "Drop",
+    "ROC_10_Normalized": "Drop",
+    "RSI_2": "Drop",
+    "RSI_2_Normalized": "Keep"
+}
