@@ -10,6 +10,7 @@ import os
 from pandas.tseries.holiday import USFederalHolidayCalendar
 from pandas.tseries.offsets import CustomBusinessDay
 import pickle
+import json
 
 import datetime as dt
 
@@ -91,9 +92,13 @@ class DataRetrieve:
                 df3: Dataframe of issue data
            To update: Set location of filename location outside of class
         """
+        df[dateName] = pd.to_datetime(df[dateName])
+        df.set_index(dateName, inplace=True)
+        #print(df.head(10))
+    
         us_cal = CustomBusinessDay(calendar=USTradingCalendar())
-        df.set_index(pd.to_datetime(df[dateName]), inplace=True)
         df3 = df.reindex(pd.date_range(start=dfStartDt, end=dfEndDt, freq=us_cal))
+
         return df3
 
     def drop_columns(self, df, col_vals):
@@ -129,6 +134,20 @@ class DataRetrieve:
     def load_obj(self, name):
         with open('../obj/' + name + '.pkl', 'rb') as f:
             return pickle.load(f)
+    
+    # functions for save and load json files
+    def save_json(self, filename, system_directory, json_file):
+        # Save system_dict to file
+        #filename = 'system_dict.json'
+        file_path = os.path.join(system_directory, filename)
+        with open(file_path, 'w') as fp:
+            json.dump(json_file, fp, sort_keys=True, indent=4)
+            
+    def load_json(self, system_directory, filename): 
+        file_path = os.path.join(system_directory, filename)
+        with open(file_path, 'r') as fp:
+            json_file = json.load(fp)
+        return json_file
     
 class ComputeTarget:
     
@@ -190,32 +209,57 @@ if __name__ == "__main__":
     threeMoTbill = "DTB3"
     
     dSet = DataRetrieve()
-    dataSet = dSet.read_issue_data(issue)
+    df = dSet.read_issue_data(issue)
+    
+    dataLoadStartDate = df.Date[0]
+    print(dataLoadStartDate)
+    lastRow = df.shape[0]
+    dataLoadEndDate = df.Date[lastRow-1]
+    print(dataLoadEndDate)
+    
+#    df['Date'] = pd.to_datetime(df['Date'])
+#    df.set_index('Date', inplace=True)
+#    print(df.head(10))
+#    
+#
+#    us_cal = CustomBusinessDay(calendar=USTradingCalendar())
+#    df3 = df.reindex(pd.date_range(start=dataLoadStartDate, end=dataLoadEndDate, freq=us_cal))
+#    df3 = dSet.set_date_range(df, dataLoadStartDate,dataLoadEndDate)
     dataSet = dSet.set_date_range(
-            dataSet, 
-            dataLoadStartDate,
-            dataLoadEndDate)
+                                  df, 
+                                  dataLoadStartDate,
+                                  dataLoadEndDate
+                                  )
+    
+    # clean dataSet
+    # potential missing item indicators
+    replacers = [None, np.nan, "None", "NaN", "nan"]
+    #new_dl_data = dl_data[:, dl_data.dtypes == 'object'].replace(replacers, '', inplace=True)
+    #dataSet.fillna([None, np.nan, "None", "NaN", "nan"], '', inplace=True)
+    #just forward fill on missing data for now
+    dataSet.fillna(method='ffill', inplace=True)
+    
     
     vixDataSet = dSet.read_fred_data(aux_issue)
     vixDataSet = dSet.set_date_range(
-            vixDataSet, 
-            dataLoadStartDate,
-            dataLoadEndDate,
-            dateName="DATE")
-    
+                                    vixDataSet, 
+                                    dataLoadStartDate,
+                                    dataLoadEndDate,
+                                    dateName="DATE")
+#    
     threeMoDataSet = dSet.read_fred_data(threeMoTbill)
     threeMoDataSet = dSet.set_date_range(
-            threeMoDataSet, 
-            dataLoadStartDate,
-            dataLoadEndDate,
-            dateName="DATE")
+                                        threeMoDataSet, 
+                                        dataLoadStartDate,
+                                        dataLoadEndDate,
+                                        dateName="DATE")
     
     beLongThreshold = 0.0
     ct = ComputeTarget()
-    targetDataSet = ct.setTarget(
-            dataSet, 
-            "Long", 
-            beLongThreshold)
+    targetDataSet = ct.setTarget(df, 
+                                 "Long", 
+                                 beLongThreshold
+                                 )
     nrows = targetDataSet.shape[0]
     print ("nrows: ", nrows)
     print (targetDataSet.shape)
@@ -243,11 +287,11 @@ if __name__ == "__main__":
     plotTitle = "3 month TBill"
     plotIt.plot_v1(threeMoDataSet['DTB3'], plotTitle)
     
-    # Merged dataSet confirmation
-    print(dataSet.Close.head(20))
-    print(vixDataSet.head(20))
-    merged_result = dataSet.join(vixDataSet, how='outer')
-    print(merged_result.head(20))
-    
-    plotTitle = "VIX and " + str(issue) + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
-    plotIt.plot_v2x(merged_result, plotTitle)
+#    # Merged dataSet confirmation
+#    print(dataSet.Close.head(20))
+#    print(vixDataSet.head(20))
+#    merged_result = dataSet.join(vixDataSet, how='outer')
+#    print(merged_result.head(20))
+#    
+#    plotTitle = "VIX and " + str(issue) + ", " + str(dataLoadStartDate) + " to " + str(dataLoadEndDate)
+#    plotIt.plot_v2x(merged_result, plotTitle)

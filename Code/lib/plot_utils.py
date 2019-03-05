@@ -11,6 +11,7 @@ import matplotlib.ticker as ticker
 import numpy as np
 from matplotlib import cm as cm
 import pandas as pd
+import matplotlib.dates as mdates
 
 class PlotUtility:
 
@@ -47,7 +48,7 @@ class PlotUtility:
         
     def plot_v2x(self, plotDataSet, title):
         numSubPlots = 2
-        fig, axes = plt.subplots(numSubPlots, ncols=1, figsize=(numSubPlots*5,6), sharex=True)
+        fig, axes = plt.subplots(numSubPlots, ncols=1, figsize=(numSubPlots*7,6), sharex=True)
         buys = plotDataSet.loc[(plotDataSet['beLong'] > 0)]
         sells = plotDataSet.loc[(plotDataSet['beLong'] < 0)]
         
@@ -100,11 +101,11 @@ class PlotUtility:
     
         def format_date(x, pos=None):
             thisind = np.clip(int(x + 0.5), 0, N - 1)
-            return df.Date[thisind].strftime('%Y-%m-%d')
+            return df.index[thisind].strftime('%Y-%m-%d')
+        #myFmt = mdates.DateFormatter('%Y-%m-%d')
         
         fig = plt.figure(1,figsize=(14,total_rows*2))
         plt.subplots_adjust(hspace=0.05)
-        
         cnt = 0
         for n in range(1,total_rows+1):
             if n==1:
@@ -124,8 +125,10 @@ class PlotUtility:
             ax.legend(loc='upper left', frameon=True, fontsize=10)
             ax.minorticks_on()
             ax.yaxis.set_major_formatter(mpl.ticker.StrMethodFormatter('{x:,.2f}'))
+            #ax.xaxis.set_major_formatter(myFmt)
+            #ax.xaxis_date()
             ax.xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
-        plt.show()
+        plt.show(block=False)
         
     def correlation_matrix(self, df):
         from matplotlib import pyplot as plt
@@ -183,7 +186,7 @@ if __name__ == "__main__":
 
     # Set up plot dictionary
     plot_dict = {}
-    plot_dict['Issue'] = dataSet.Symbol[0]
+    plot_dict['Issue'] = issue
     plot_dict['Plot_Vars'] = ['beLong']
     plot_dict['Volume'] = 'Yes'
     

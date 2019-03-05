@@ -80,7 +80,7 @@ class TALibVolumeStudies:
                               )
         return df
     
-    def MFI(self, df, period):
+    def MFI(self, df2, period):
         """Money Flow Index (MFI)
         Uses both price and volume to measure buying and selling pressure. It is
         positive when the typical price rises (buying pressure) and negative when
@@ -98,15 +98,23 @@ class TALibVolumeStudies:
         col_name = 'MFI_' + str(period)
         current_feature['Latest'] = col_name
         feature_dict[col_name] = 'Keep'
+        
+        df = df2.copy()
 
+        print('column name: ', col_name)
         df['Up_or_Down'] = 0
-        df.loc[(df['Close'] > df['Close'].shift(1)), 'Up_or_Down'] = 1
-        df.loc[(df['Close'] < df['Close'].shift(1)), 'Up_or_Down'] = 2
+        df.loc[(df['Close'] > df['Close'].shift(-1)), 'Up_or_Down'] = 1
+        df.loc[(df['Close'] < df['Close'].shift(-1)), 'Up_or_Down'] = 2
+        #print(df['Up_or_Down'].head(10))
 
         # 1 typical price
-        tp = (df['High'] + df['Low'] + df['Close']) / 3.
+        tp = (df['High'] + df['Low'] + df['Close']) / 3
+        #print('====tp====')
+        #print(tp.head(10))
         # 2 money flow
         mf = tp * df['Volume']
+        #print('====mf====')
+        #print(mf.head(10))
         # 3 positive and negative money flow with n periods
         df['1p_Positive_Money_Flow'] = 0.0
         df.loc[df['Up_or_Down'] == 1, '1p_Positive_Money_Flow'] = mf
@@ -120,9 +128,14 @@ class TALibVolumeStudies:
         # 4 money flow index
         mr = n_positive_mf / n_negative_mf
         mr = (100 - (100 / (1 + mr)))
-        df[col_name] = mr
-        
+        #print('============mr==========')
+        #print(mr.tail(20))
+        df[col_name] = (100 - (100 / (1 + n_positive_mf / n_negative_mf)))
+        #print('============df[col_name]==========')
+        #print(col_name)
+        #print(df[col_name].tail(10))
         return df
+    
  
 class CustVolumeStudies:
     """Group of Custom Volume studies"""
@@ -153,30 +166,64 @@ class CustVolumeStudies:
 if __name__ == "__main__":
     from Code.lib.plot_utils import PlotUtility
     from Code.lib.retrieve_data import DataRetrieve
+    from Code.lib.feature_generator import FeatureGenerator
+    from Code.lib.transformers import Transformers
     
     taLibVolSt = TALibVolumeStudies()
     custVolSt = CustVolumeStudies()
     plotIt = PlotUtility()
     dSet = DataRetrieve()
+    transf = Transformers()
+    featureGen = FeatureGenerator()
     
-    dataLoadStartDate = "2014-04-01"
-    dataLoadEndDate = "2018-04-01"
     issue = "TLT"
 
-    dataSet = dSet.read_issue_data(issue)
-    dataSet = dSet.set_date_range(dataSet,
+    df = dSet.read_issue_data(issue)
+    lastRow = df.shape[0]
+    dataLoadEndDate = df.Date[lastRow-100]
+    
+    dataLoadStartDate = df.Date[lastRow-3000]
+    dataSet = dSet.set_date_range(df,
                                   dataLoadStartDate,
                                   dataLoadEndDate
                                   )      
-    dataSet = taLibVolSt.ChaikinAD(dataSet)
-    dataSet = taLibVolSt.ChaikinADOSC(dataSet, 3, 10)
-    dataSet = taLibVolSt.OBV(dataSet)
-    dataSet = taLibVolSt.MFI(dataSet, 14)
-    dataSet = custVolSt.ease_OfMvmnt(dataSet, 14)
+    dataSet.fillna(method='ffill', inplace=True)
+    input_dict = {} # initialize 
+    input_dict = {'f1': 
+                  {'fname' : 'ChaikinAD', 
+                   'params' : []
+                   },
+                  'f2': 
+                  {'fname' : 'ease_OfMvmnt', 
+                   'params' : [10]
+                   },
+                  'f3': 
+                  {'fname' : 'MFI', 
+                   'params' : [101],
+                   'transform' : ['Normalized', 100]
+                   },
+                  'f4': 
+                  {'fname' : 'MFI', 
+                   'params' : [20],
+                   'transform' : ['Normalized', 10]
+                   },
+                  'f5': 
+                  {'fname' : 'MFI', 
+                   'params' : [3],
+                   'transform' : ['Scaler', 'robust']
+                   },
+                  }
+    
+    dataSet2 = featureGen.generate_features(dataSet, input_dict)
+#    dataSet = taLibVolSt.ChaikinAD(dataSet)
+#    dataSet = taLibVolSt.ChaikinADOSC(dataSet, 3, 10)
+#    dataSet = taLibVolSt.OBV(dataSet)
+#    dataSet = taLibVolSt.MFI(dataSet, 14)
+#    dataSet = custVolSt.ease_OfMvmnt(dataSet, 14)
     
     startDate = "2015-02-01"
-    endDate = "2015-04-30"
-    plotDF = dataSet[startDate:endDate]
+    endDate = "2018-04-12"
+    plotDF = dataSet2[startDate:endDate]
     
     # Set up dictionary and plot HigherClose
     plot_dict = {}

@@ -35,6 +35,7 @@ import pickle
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn import svm
 
 if __name__ == "__main__":
     plotIt = PlotUtility()
@@ -49,15 +50,18 @@ if __name__ == "__main__":
         
     issue = "TLT"
     # Set IS-OOS parameters
-    pivotDate = datetime.date(2018, 4, 2)
+    pivotDate = datetime.date(2019, 1, 3)
     is_oos_ratio = 2
     oos_months = 4
-    segments = 1
+    segments = 4
     
-    dataSet = dSet.read_issue_data(issue)
-    
-    # get first data from loaded data instead of hard coding start date
-    dataSet = dSet.set_date_range(dataSet, "2014-09-26", pivotDate)
+    df = dSet.read_issue_data(issue)
+    dataLoadStartDate = df.Date[0]
+    lastRow = df.shape[0]
+    dataLoadEndDate = df.Date[lastRow-1]
+    dataSet = dSet.set_date_range(df, dataLoadStartDate,dataLoadEndDate)
+    # Resolve any NA's for now
+    dataSet.fillna(method='ffill', inplace=True)
     
     #set beLong level
     beLongThreshold = 0.000
@@ -97,10 +101,12 @@ if __name__ == "__main__":
              }       
     dataSet = featureGen.generate_features(dataSet, input_dict)
     
+    dataSet = transf.normalizer(dataSet, 'Volume', 50)
+    
     # save Dataset of analysis
     print("====Saving dataSet====\n")
     modelname = 'RF'
-    file_title = issue + "_insample_model_" + modelname + ".pkl"
+    file_title = issue + "_insample_feature_dataSet_" + modelname + ".pkl"
     file_name = os.path.join(r'C:\Users\kruegkj\Documents\GitHub\QuantTradingSys\Code\models\model_data', file_title)
     dataSet.to_pickle(file_name)
     
@@ -126,7 +132,7 @@ if __name__ == "__main__":
     # Correlation study
     corrData = dataSet[modelStartDate:oosModelEndDate].copy()
     col_vals = [k for k,v in feature_dict.items() if v == 'Drop']
-    to_drop = ['Open','High','Low', 'gainAhead', 'Symbol', 'Date', 'Close', 'beLong']
+    to_drop = ['Open','High','Low', 'gainAhead', 'Close', 'beLong', 'Volume']
     for x in to_drop:
         col_vals.append(x)
     corrData = dSet.drop_columns(corrData, col_vals)
@@ -188,7 +194,7 @@ if __name__ == "__main__":
         evData = dataSet.loc[modelStartDate:modelEndDate].copy()
     
         col_vals = [k for k,v in feature_dict.items() if v == 'Drop']
-        to_drop = ['Open','High','Low', 'gainAhead', 'Symbol', 'Date', 'Close']
+        to_drop = ['Open','High','Low', 'gainAhead', 'Close', 'Volume']
         for x in to_drop:
             col_vals.append(x)
         mmData = dSet.drop_columns(mmData, col_vals)
@@ -206,25 +212,36 @@ if __name__ == "__main__":
              
         dX, dy = modelUtil.prepare_for_classification(mmData)        
         
-        sss = StratifiedShuffleSplit(n_splits=iterations,
-                                     test_size=0.33,
-                                     random_state=None
-                                     )
-        tscv = TimeSeriesSplit(n_splits=6, max_train_size=24)
+#        sss = StratifiedShuffleSplit(n_splits=iterations,
+#                                     test_size=0.33,
+#                                     random_state=None
+#                                     )
+        #tscv = TimeSeriesSplit(n_splits=3, max_train_size=24)
+        tscvi = TimeSeriesSplitImproved(n_splits=8)
         
-        model = RandomForestClassifier(n_jobs=-1,
-                                       random_state=55,
-                                       min_samples_split=10,
-                                       n_estimators=100,
-                                       max_features = 3,
-                                       min_samples_leaf = 5,
-                                       oob_score = 'TRUE'
-                                       )
+#        model = RandomForestClassifier(n_jobs=-1,
+#                                       random_state=55,
+#                                       min_samples_split=10,
+#                                       n_estimators=100,
+#                                       max_features = 3,
+#                                       min_samples_leaf = 5,
+#                                       oob_score = 'TRUE'
+#                                       )
+#        model = KNeighborsClassifier(algorithm='auto',
+#                                     leaf_size=10,
+#                                     metric='minkowski',
+#                                     metric_params=None,
+#                                     n_jobs=None,
+#                                     n_neighbors=3,
+#                                     p=2,
+#                                     weights='uniform'
+#                                     )
+        model = svm.SVC(kernel='linear', probability=True, random_state=0)
         #model = KNeighborsClassifier(n_neighbors=3)
         #model = GradientBoostingClassifier(learning_rate=0.05, subsample=0.5, max_depth=10, n_estimators=10)
         ### add issue, other data OR use dictionary to pass data!!!!!!
         info_dict = {'issue':issue, 'modelStartDate':modelStartDate, 'modelEndDate':modelEndDate, 'modelname':modelname, 'nrows':nrows, 'predictors':predictor_vars}
-        model_results = modelUtil.model_and_test(dX, dy, model, model_results, tscv, info_dict, evData)
+        model_results, fit_model = modelUtil.model_and_test(dX, dy, model, model_results, tscvi, info_dict, evData)
         
         modelStartDate = modelStartDate  + relativedelta(months=oos_months) + BDay(1)
         modelEndDate = modelStartDate + relativedelta(months=is_months) - BDay(1)
@@ -251,7 +268,7 @@ if __name__ == "__main__":
         #stationarity_tests(valData, 'Close', issue)
         
         col_vals = [k for k,v in feature_dict.items() if v == 'Drop']
-        to_drop = ['Open','High','Low', 'gainAhead', 'Symbol', 'Date', 'Close', 'beLong']
+        to_drop = ['Open','High','Low', 'gainAhead', 'Close', 'beLong', 'Volume']
         for x in to_drop:
             col_vals.append(x)
         valModelData = dSet.drop_columns(valData, col_vals)
@@ -261,7 +278,7 @@ if __name__ == "__main__":
     
         # test the validation data
         y_validate = []
-        y_validate = model.predict(valModelData)
+        y_validate = fit_model.predict(valModelData)
     
         # Create best estimate of trades
         bestEstimate = np.zeros(valRows)
@@ -279,11 +296,11 @@ if __name__ == "__main__":
         equity[0] = 1.0
         for i in range(1,valRows):
             equity[i] = (1+bestEstimate[i])*equity[i-1]       
-        plt.plot(equity)
-        plt.title('Terminal wealth of predicted trades')
-        plt.show(block=True)
+#        plt.plot(equity)
+#        plt.title('Terminal wealth of predicted trades')
+#        plt.show(block=True)
         
-        print('{0:} {1:.2f}'.format("Terminal Weatlh: ", equity[valRows-1]))
+#        print('{0:} {1:.2f}'.format("Terminal Weatlh: ", equity[valRows-1]))
         #TWR is (Final Stake after compounding / Starting Stake) for your system.
         
         # Store predictions in valBeLong for plotting

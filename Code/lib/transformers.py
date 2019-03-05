@@ -10,6 +10,7 @@ from sklearn.preprocessing import RobustScaler
 from sklearn.preprocessing import MinMaxScaler
 from scipy.stats import norm
 from Code.lib.config import current_feature, feature_dict
+from pprint import pprint
 
 '''Normalization is a rescaling of the data from the original range so that all values are within the range of 0 and 1'''
 
@@ -64,7 +65,14 @@ class Transformers:
         col_name = lag_var + "_lag" + str(lag)
         current_feature['Latest'] = col_name
         feature_dict[col_name] = 'Keep'
-        df[col_name] = df[lag_var].shift(lag)
+        df[col_name] = df[lag_var].shift(-lag)
+        print(df[col_name].tail(20))
+        df[col_name] = df[col_name].fillna(df[col_name].rolling(lag*2,center=True,min_periods=1).mean())
+#        df['rollmean3']  = df[col_name].rolling(1,center=True,min_periods=1).mean()
+#        df['update'] = df['rollmean3']
+#        df['update'].update( df[col_name] )
+        print("===============")
+        print(df.tail(20))
         return df
 
     def centering(self, df, col, lb=14, type='median'):
@@ -163,11 +171,16 @@ class Transformers:
         feature_dict[current_feature['Latest']] = 'Drop'
         current_feature['Latest'] = new_colname
         # clean NaN's
+#        print("tail before clean: ")
+#        pprint(dataSet.tail(10))
         dataSet = self.clean_dataset(dataSet)
+#        print("tail after clean: ")
+#        pprint(dataSet.tail(10))
         
         df = dataSet[colname]
         #print(df)
         for i in range(len(df))[::-1]:
+            #print("i: " + str(i) + "    n: " + str(n))
             if i  >= n:
                 # there will be a traveling norm until we reach the initial n
                 # values. Those values will be normalized using the last
@@ -184,6 +197,7 @@ class Transformers:
             else:
                 # even if strange values are given, it will perform full
                 # normalization with compression as default
+                
                 v = norm.cdf(1.0*(df.iloc[i]-F50)/(F75-F25))
             #print (v)
             temp.append(v)
@@ -205,10 +219,6 @@ if __name__ == "__main__":
     from Code.lib.ta_volatility_studies import TALibVolatilityStudies
     from Code.lib.feature_generator import FeatureGenerator
     from Code.lib.config import current_feature, feature_dict
-
-    dataLoadStartDate = "2014-04-01"
-    dataLoadEndDate = "2018-04-01"
-    issue = "TLT"
     
     vStud = TALibVolatilityStudies()
     taLibMomSt = TALibMomentumStudies()
@@ -218,50 +228,32 @@ if __name__ == "__main__":
     transf = Transformers()
     featureGen = FeatureGenerator()
     
-    dataSet = dSet.read_issue_data(issue)
-    dataSet = dSet.set_date_range(dataSet,
-                                  dataLoadStartDate,
-                                  dataLoadEndDate
-                                  )
+    issue = "TLT"
+    df = dSet.read_issue_data(issue)
+    dataLoadStartDate = df.Date[0]
+    pprint(dataLoadStartDate)
+    lastRow = df.shape[0]
+    dataLoadEndDate = df.Date[lastRow-1]
+    pprint(dataLoadEndDate)
+    df = dSet.set_date_range(df, dataLoadStartDate,dataLoadEndDate)
+    pprint(df.tail(10))
+    # Resolve any NA's for now
+    df.fillna(method='ffill', inplace=True)
     
     input_dict = {} # initialize 
     input_dict = {'f1': 
-                  {'fname' : 'RSI', 
-                   'params' : [10],
-                   'transform' : ['Zscore', 5]
-                   },
-                  'f2':
-                   {'fname' : 'RSI', 
-                   'params' : [10],
-                   'transform' : ['Normalized', 5]
-                   },
-                  'f3': 
-                  {'fname' : 'RSI',
-                   'params' : [10],
-                   'transform' : ['Scaler', 'robust']
-                   },
-                  'f4': 
-                  {'fname' : 'RSI', 
-                   'params' : [10],
-                   'transform' : ['Center', 5]
-                   },
-                  'f5': 
                   {'fname' : 'Lag', 
-                   'params' : ['Close', 3],
-                   'transform' : ['Normalized', 20]
+                   'params' : ['Close', 2]
                    }
-#                  'f6': 
-#                  {'fname' : 'RSI', 
-#                   'params' : [10],
-#                   'transform' : ['Center', 3]
-#                   }
                   }
     
-    dataSet = featureGen.generate_features(dataSet, input_dict)
+    dataSet = featureGen.generate_features(df, input_dict)
+    
+    #dataSet = transf.normalizer(dataSet, 'Volume', 50)
             
     # Plot price and indicators
-    startDate = "2014-02-01"
-    endDate = "2015-06-30"
+    startDate = "2019-01-20"
+    endDate = "2019-02-12"
 
     plotDataSet = dataSet[startDate:endDate]
     

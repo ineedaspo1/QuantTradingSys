@@ -71,11 +71,11 @@ def plotPriceAndBeLong(issue, modelStartDate, modelEndDate, valData):
     plt.show(block=False)
 
 def plotPriceAndTradeSignals(valData):
-    fig = plt.figure(figsize=(10,6))
+    fig = plt.figure(figsize=(10,10))
     fig.subplots_adjust(hspace=0.05)
-    ax1 = plt.subplot2grid((5,1), (0,0), rowspan=3, colspan=1)
-    ax2 = plt.subplot2grid((5,1), (3,0), rowspan=1, colspan=1)
-    ax3 = plt.subplot2grid((5,1), (4,0), rowspan=1, colspan=1)
+    ax1 = plt.subplot2grid((8,1), (0,0), rowspan=3, colspan=1)
+    ax2 = plt.subplot2grid((8,1), (3,0), rowspan=1, colspan=1)
+    ax3 = plt.subplot2grid((8,1), (4,0), rowspan=1, colspan=1)
     
     ax2.plot(valData['valBeLong'], color='green', alpha =0.6)
     ax1.plot(valData['Close'])

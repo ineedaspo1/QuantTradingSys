@@ -54,10 +54,13 @@ if __name__ == "__main__":
     oos_months = 4
     segments = 6
     
-    dataSet = dSet.read_issue_data(issue)
-    
-    # get first data from loaded data instead of hard coding start date
-    dataSet = dSet.set_date_range(dataSet, "2014-09-26", pivotDate)
+    df = dSet.read_issue_data(issue)
+    dataLoadStartDate = df.Date[0]
+    lastRow = df.shape[0]
+    dataLoadEndDate = df.Date[lastRow-1]
+    dataSet = dSet.set_date_range(df, dataLoadStartDate,dataLoadEndDate)
+    # Resolve any NA's for now
+    dataSet.fillna(method='ffill', inplace=True)
     
     #set beLong level
     beLongThreshold = 0.000
@@ -85,7 +88,7 @@ if __name__ == "__main__":
     # save Dataset of analysis
     print("====Saving dataSet====\n\n")
     modelname = 'RF'
-    file_title = issue + "_insample_model_" + modelname + ".pkl"
+    file_title = issue + "_insample_feature_dataSet_" + modelname + ".pkl"
     file_name = os.path.join(r'C:\Users\kruegkj\Documents\GitHub\QuantTradingSys\Code\models\model_data', file_title)
     dataSet.to_pickle(file_name)
     
@@ -130,7 +133,7 @@ if __name__ == "__main__":
         evData = dataSet.loc[modelStartDate:modelEndDate].copy()
     
         col_vals = [k for k,v in feature_dict.items() if v == 'Drop']
-        to_drop = ['Open','High','Low', 'gainAhead', 'Symbol', 'Date', 'Close']
+        to_drop = ['Open','High','Low', 'gainAhead', 'Close']
         for x in to_drop:
             col_vals.append(x)
         mmData = dSet.drop_columns(mmData, col_vals)
@@ -168,7 +171,7 @@ if __name__ == "__main__":
                 
         ### add issue, other data OR use dictionary to pass data!!!!!!
         info_dict = {'issue':issue, 'modelStartDate':modelStartDate, 'modelEndDate':modelEndDate, 'modelname':modelname, 'nrows':nrows, 'predictors':predictor_vars}
-        model_results = modelUtil.model_and_test(dX, dy, model, model_results, tscv, info_dict, evData)
+        model_results, fit_model = modelUtil.model_and_test(dX, dy, model, model_results, tscv, info_dict, evData)
         
         modelStartDate = modelStartDate  + relativedelta(months=oos_months) + BDay(1)
         modelEndDate = modelStartDate + relativedelta(months=is_months) - BDay(1)
@@ -193,7 +196,7 @@ if __name__ == "__main__":
     file_title = issue + "_predictive_model_" + modelname + ".sav"
     file_name = os.path.join(r'C:\Users\kruegkj\Documents\GitHub\QuantTradingSys\Code\models\model_data', file_title)
     #joblib.dump(model,filename)
-    pickle.dump(model, open(file_name, 'wb'))
+    pickle.dump(fit_model, open(file_name, 'wb'))
     
     ############################
     #################################
@@ -226,7 +229,7 @@ if __name__ == "__main__":
         stationarity_tests(valData, 'Close', issue)
         
         col_vals = [k for k,v in feature_dict.items() if v == 'Drop']
-        to_drop = ['Open','High','Low', 'gainAhead', 'Symbol', 'Date', 'Close', 'beLong']
+        to_drop = ['Open','High','Low', 'gainAhead', 'Close', 'beLong']
         for x in to_drop:
             col_vals.append(x)
         valModelData = dSet.drop_columns(valData, col_vals)
@@ -236,7 +239,7 @@ if __name__ == "__main__":
     
         # test the validation data
         y_validate = []
-        y_validate = model.predict(valModelData)
+        y_validate = fit_model.predict(valModelData)
     
         # Create best estimate of trades
         bestEstimate = np.zeros(valRows)

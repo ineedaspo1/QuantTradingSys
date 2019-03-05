@@ -30,7 +30,7 @@ issue = 'TLT'
 #  Set the path for the csv file
 #path = 'oos_equity_eval_EWH_test1.csv'
 # latest RT plus OOS
-path = 'TLT_tms1_2018-04-02.csv'
+path = 'oos_equity_eval_TLT_test1.csv'
 
 #  Use pandas to read the csv file, 
 #  creating a pandas dataFrame

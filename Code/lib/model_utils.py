@@ -26,7 +26,7 @@ from sklearn.metrics import f1_score
 
 class ModelUtility:
     
-    def conf_matrix_results(self,cm_results):
+    def conf_matrix_results(self, cm_results, printResults=False):
         ''' Function to define CM results and details of other measures
             Accuracy (also Rate of Correctness): Percentage of accurate predictions
             Precision: Positive predicted value(PPV)
@@ -39,7 +39,8 @@ class ModelUtility:
             0 no better than random prediction. −1 indicates total disagreement 
             between prediction and observation.
             '''
-        return_cm = ()
+        return_cm = {}
+        
         tp = cm_results[1,1]
         fn = cm_results[1,0]
         fp = cm_results[0,1]
@@ -47,20 +48,29 @@ class ModelUtility:
         precision = tp/(tp + fp)
         recall = tp/(tp + fn)
         accuracy = (tp + tn)/(tp + fn + fp + tn)
-        #specificity = tn/(tp+tn)
+        specificity = tn/(tp+tn)
         rmc = fn/(fn+tp)
         rf = fp/(fp + tp)
         npv = tn/(tn+fn)
         f1 = (2.0 * precision * recall) / (precision + recall)
         mcc = ((tp*tn) - (fp*fn))/(math.sqrt((tp+fp)*(tp+fn)*(tn+fp)*(tn+fn)))
-        return_cm = (precision, recall, accuracy, f1)
+
+        return_cm['accuracy'] = accuracy
+        return_cm['precision'] = precision
+        return_cm['rmc'] = rmc
+        return_cm['rf'] = rf
+        return_cm['npv'] = npv
+        return_cm['mcc'] = mcc
         
-        print('{0:>30} {1:2.2f}'.format("Accuracy: ", accuracy))
-        print('{0:>30} {1:2.2f}'.format("Precision (PPV): ", precision))
-        print('{0:>30} {1:2.2f}'.format("Rate of Missing Chances: ", rmc))
-        print('{0:>30} {1:2.2f}'.format("Rate of Failure: ", rf))
-        print('{0:>30} {1:2.2f}'.format("Neg Pred Value (NPV): ", npv))
-        print('{0:>30} {1:2.2f}'.format("MCC: ", mcc))
+        if printResults:
+            print('{0:>30} {1:2.2f}'.format("Accuracy: ", accuracy))
+            print('{0:>30} {1:2.2f} {2}'.format("Recall: ", recall, "(When 1, how often prediction correct?)"))
+            print('{0:>30} {1:2.2f} {2}'.format("Specificity: ", specificity, "(When -1, how often prediction correct?)"))
+            print('{0:>30} {1:2.2f}'.format("Precision (PPV): ", precision))
+            print('{0:>30} {1:2.2f}'.format("Rate of Missing Chances: ", rmc))
+            print('{0:>30} {1:2.2f}'.format("Rate of Failure: ", rf))
+            print('{0:>30} {1:2.2f}'.format("Neg Pred Value (NPV): ", npv))
+            print('{0:>30} {1:2.2f}'.format("MCC: ", mcc))
         return return_cm
  
     def cm_plot(self, cm, type):
@@ -120,7 +130,7 @@ class ModelUtility:
         print ("----------------------")
         print ("==" + cm_type + "==")
         self.cm_plot(cm_data, cm_type)
-        self.conf_matrix_results(cm_data)
+        self.conf_matrix_results(cm_data,printResults=True)
         # calculate CB from predicted values
         # populate 2x2 matrix for multiplication with CM values
         ev_not_beLong = self.get_evData_avg(ev_data, -1)
@@ -150,6 +160,8 @@ class ModelUtility:
         recall_scores_oos = []
         f1_scores_is = []
         f1_scores_oos = []
+        hit_rate_is = []
+        hit_rate_oos = []
         
         #  Initialize the confusion matrix
         cm_sum_is = np.zeros((2,2))
@@ -157,14 +169,16 @@ class ModelUtility:
         #  For each entry in the set of splits, fit and predict
 
         for train_index,test_index in tscv.split(dX,dy):
+            print("TRAIN:", train_index, "TEST:", test_index)
             X_train, X_test = dX[train_index], dX[test_index]
             y_train, y_test = dy[train_index], dy[test_index] 
-        #    print("TRAIN:", train_index, "TEST:", test_index)
-        #  fit the model to the in-sample data
+        #   print("TRAIN:", train_index, "TEST:", test_index)
+        #   fit the model to the in-sample data
             model.fit(X_train, y_train)
             
         #  test the in-sample fit    
             y_pred_is = model.predict(X_train)
+            #print("%s: %0.3f" % ("Hit rate (IS)  ", model.score(X_train, y_train)))
             cm_is = confusion_matrix(y_train, y_pred_is)
             cm_sum_is = cm_sum_is + cm_is
             accuracy_scores_is.append(accuracy_score(y_train, y_pred_is))
@@ -174,6 +188,7 @@ class ModelUtility:
             
         #  test the out-of-sample data
             y_pred_oos = model.predict(X_test)
+            #print("%s: %0.3f" % ("Hit rate (OOS) ", model.score(X_test, y_test)))
             cm_oos = confusion_matrix(y_test, y_pred_oos)
             #print(model.score(X_test, y_test))
             cm_sum_oos = cm_sum_oos + cm_oos
@@ -183,13 +198,44 @@ class ModelUtility:
             f1_scores_oos.append(f1_score(y_test, y_pred_oos))
 
         is_ev = self.print_expected_value(cm_sum_is, "In Sample", evData)
-        oos_ev = self.print_expected_value(cm_sum_oos, "Out of Sample", evData)     
+        oos_ev = self.print_expected_value(cm_sum_oos, "Out of Sample", evData)
+        
+        is_cm_results = self.conf_matrix_results(cm_sum_is, printResults=False)
+        #print(is_cm_results)
+        oos_cm_results = self.conf_matrix_results(cm_sum_oos, printResults=False)
+        #print(oos_cm_results)
         
         col_save = [k for k,v in feature_dict.items() if v == 'Keep']
         
-        model_results.append({'Issue': info_dict['issue'], 'StartDate': info_dict['modelStartDate'].strftime("%Y-%m-%d"), 'EndDate': info_dict['modelEndDate'].strftime("%Y-%m-%d"), 'Model': info_dict['modelname'], 'Rows': info_dict['nrows'], 'beLongCount': str(np.count_nonzero(dy==1)), 'Features': col_save, 'IS-Accuracy': np.mean(accuracy_scores_is), 'IS-Precision': np.mean(precision_scores_is), 'IS-Recall': np.mean(recall_scores_is), 'IS-F1': np.mean(f1_scores_is), 'IS-EV': is_ev*100, 'OOS-Accuracy':  np.mean(accuracy_scores_oos), 'OOS-Precision': np.mean(precision_scores_oos), 'OOS-Recall': np.mean(recall_scores_oos), 'OOS-F1': np.mean(f1_scores_oos), 'OOS-EV': oos_ev*100})
+        model_results.append({'Issue': info_dict['issue'],
+                              'StartDate': info_dict['modelStartDate'].strftime("%Y-%m-%d"),
+                              'EndDate': info_dict['modelEndDate'].strftime("%Y-%m-%d"), 
+                              'Model': info_dict['modelname'],
+                              'Rows': info_dict['nrows'], 
+                              'beLongCount': str(np.count_nonzero(dy==1)), 
+                              'Features': col_save, 
+                              'IS-Accuracy': np.mean(accuracy_scores_is),
+                              'IS-Precision': np.mean(precision_scores_is),
+                              'IS-RMC': is_cm_results["rmc"],
+                              'IS-RF': is_cm_results["rf"],
+                              'IS-NPV': is_cm_results["npv"],
+                              'IS-MCC': is_cm_results["mcc"],
+                              'IS-Recall': np.mean(recall_scores_is),
+                              'IS-F1': np.mean(f1_scores_is),
+                              'IS-EV': is_ev*100,
+                              'OOS-Accuracy':  np.mean(accuracy_scores_oos),
+                              'OOS-Precision': np.mean(precision_scores_oos),
+                              'OOS-RMC': oos_cm_results["rmc"],
+                              'OOS-RF': oos_cm_results["rf"],
+                              'OOS-NPV': oos_cm_results["npv"],
+                              'OOS-MCC': oos_cm_results["mcc"],
+                              'OOS-Recall': np.mean(recall_scores_oos),
+                              'OOS-F1': np.mean(f1_scores_oos),
+                              'OOS-EV': oos_ev*100
+                              }
+                            )
         
-        return model_results
+        return model_results, model
     
 class TimeSeriesSplitImproved(TimeSeriesSplit):
     """Time Series cross-validator
@@ -249,7 +295,7 @@ class TimeSeriesSplitImproved(TimeSeriesSplit):
     of test sets is ``n_splits + 2 - train_splits - test_splits``.
     """
  
-    def split(self, X, y=None, groups=None, fixed_length=False, train_splits=1, test_splits=1):
+    def split(self, X, y=None, groups=None, fixed_length=True, train_splits=4, test_splits=1):
         """Generate indices to split data into training and test set.
         Parameters
         ----------
@@ -407,5 +453,6 @@ if __name__ == "__main__":
         
     ### add issue, other data OR use dictionary to pass data!!!!!!
     info_dict = {'issue':issue, 'modelStartDate':modelStartDate, 'modelEndDate':modelEndDate, 'modelname':modelname, 'nrows':nrows}
-    model_results = modelUtil.model_and_test(dX, dy, model, model_results, tscv, info_dict, evData)
-    print(model_results)
+    model_results, fit_model = modelUtil.model_and_test(dX, dy, model, model_results, tscv, info_dict, evData)
+#    print(model_results)
+#    print(fit_model)

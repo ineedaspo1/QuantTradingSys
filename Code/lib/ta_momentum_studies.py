@@ -6,6 +6,8 @@ ta_momentum_studies.py
 """
 import talib as ta
 from Code.lib.config import current_feature, feature_dict
+from pprint import pprint
+import pandas as pd
 
 class TALibMomentumStudies:
     """Group of Momentum studies utilized fromTALib """
@@ -24,6 +26,33 @@ class TALibMomentumStudies:
         feature_dict[col_name] = 'Keep'
         
         df[col_name] = ta.RSI(df.Close, period)
+        return df
+    
+    def RSI2(self, df, n):
+        col_name = 'RSI2_' + str(n)
+        current_feature['Latest'] = col_name
+        feature_dict[col_name] = 'Keep'
+        i = 0  
+        UpI = [0]  
+        DoI = [0]  
+        while i + 1 <= df.index[-1]:  
+            UpMove = df.get_value(i + 1, 'High') - df.get_value(i, 'High')  
+            DoMove = df.get_value(i, 'Low') - df.get_value(i + 1, 'Low')  
+            if UpMove > DoMove and UpMove > 0:  
+                UpD = UpMove  
+            else: UpD = 0  
+            UpI.append(UpD)  
+            if DoMove > UpMove and DoMove > 0:  
+                DoD = DoMove  
+            else: DoD = 0  
+            DoI.append(DoD)  
+            i = i + 1  
+        UpI = pd.Series(UpI)  
+        DoI = pd.Series(DoI)  
+        PosDI = pd.Series(pd.ewma(UpI, span = n, min_periods = n - 1))  
+        NegDI = pd.Series(pd.ewma(DoI, span = n, min_periods = n - 1))  
+        RSI = pd.Series(PosDI / (PosDI + NegDI), name = 'RSI2_' + str(n))  
+        df = df.join(RSI)  
         return df
 
     def PPO(self, df, fast, slow):
@@ -152,23 +181,34 @@ if __name__ == "__main__":
     taLibMomSt = TALibMomentumStudies()
     dSet = DataRetrieve()
     
-    dataLoadStartDate = "2014-04-01"
-    dataLoadEndDate = "2018-04-01"
     issue = "TLT"
+    df = dSet.read_issue_data(issue)
 
-    dataSet = dSet.read_issue_data(issue)
+    lastRow = df.shape[0]
+    dataLoadEndDate = df.Date[lastRow-100]
+    pprint(dataLoadEndDate)
+    
+    dataLoadStartDate = df.Date[lastRow-3000]
+    pprint(dataLoadStartDate)
+    
+    dataSet = dSet.set_date_range(df, dataLoadStartDate, dataLoadEndDate)
+    pprint(dataSet.tail(10))
+    
+    # Resolve any NA's for now
+    dataSet.fillna(method='ffill', inplace=True)
 
-    dataSet = dSet.set_date_range(dataSet, dataLoadStartDate, dataLoadEndDate)
-
-    dataSet = taLibMomSt.RSI(dataSet, 2)
+    dataSet = taLibMomSt.RSI(dataSet, 10)
+    #dataSet = taLibMomSt.RSI2(dataSet, 2)
+    pprint(dataSet.head(5))
+    pprint(dataSet.tail(5))
     dataSet = taLibMomSt.PPO(dataSet, 12, 26)
-    dataSet = taLibMomSt.CMO(dataSet, 20)
-    dataSet = taLibMomSt.CCI(dataSet, 20)
-    dataSet = taLibMomSt.UltOsc(dataSet, 7, 24, 28)
-    dataSet = taLibMomSt.rate_OfChg(dataSet, 10)
+#    dataSet = taLibMomSt.CMO(dataSet, 20)
+#    dataSet = taLibMomSt.CCI(dataSet, 20)
+#    dataSet = taLibMomSt.UltOsc(dataSet, 7, 24, 28)
+#    dataSet = taLibMomSt.rate_OfChg(dataSet, 10)
 
-    startDate = "2015-02-01"
-    endDate = "2015-06-30"
+    startDate = dataLoadStartDate
+    endDate = dataLoadEndDate
     plotDF = dataSet[startDate:endDate]
     
     # Set up dictionary and plot HigherClose

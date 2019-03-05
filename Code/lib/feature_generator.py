@@ -19,18 +19,19 @@ class FeatureGenerator:
         except TypeError:
             return None  # or some other default value
         
-    def generate_features(self, df, input_dict):
+    def generate_features(self, new_df, input_dict):
         funcDict = DataRetrieve.load_obj(self, 'func_dict')
         for key in input_dict.keys():
             print(key)
             path = [key, 'fname']
-            #print('fname: ', self.get_from_dict(input_dict, path))
+            print('fname: ', self.get_from_dict(input_dict, path))
             func_name = self.get_from_dict(input_dict, path)
             
             path = [key, 'params']
-            #print('params: ', self.get_from_dict(input_dict, path))
+            print('params: ', self.get_from_dict(input_dict, path))
             params = self.get_from_dict(input_dict, path)  
-            df = funcDict[func_name](df, *params)
+            new_df = funcDict[func_name](new_df, *params)
+            #print(new_df.tail(10))
             print("Current feature: ", current_feature['Latest'])
             
             path = [key, 'transform']
@@ -40,17 +41,17 @@ class FeatureGenerator:
             if do_transform:
                 #print('!!!!', do_transform[0], )
                 pass_params = (do_transform[1::])
-                #print("pass params" , pass_params)
+                print("pass params" , pass_params)
                 #print("Current feature: ", current_feature['Latest'])
-                df = funcDict[do_transform[0]](df,
+                new_df = funcDict[do_transform[0]](new_df,
                                                current_feature['Latest'],
                                                *pass_params
                                                )
                 #print("Current feature: ", current_feature['Latest'])
-        return df
+        return new_df
     
 if __name__ == "__main__":
-    from Code.lib.plot_utils import PlotUtility as plotIt
+    from Code.lib.plot_utils import PlotUtility
     from Code.lib.ta_momentum_studies import TALibMomentumStudies
     from Code.lib.ta_volume_studies import TALibVolumeStudies, CustVolumeStudies
     from Code.lib.ta_volatility_studies import TALibVolatilityStudies
@@ -59,8 +60,7 @@ if __name__ == "__main__":
     from Code.lib.oscillator_studies import OscialltorStudies
     from Code.lib.candle_indicators import CandleIndicators
     
-    dataLoadStartDate = "2014-04-01"
-    dataLoadEndDate = "2018-04-01"
+    
     issue = "TLT"
     
     taLibVolSt = TALibVolumeStudies()
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     custVolSt = CustVolumeStudies()
     taLibOS = TALibOverlapStudies()
     featureGen = FeatureGenerator()
-    #plotIt = PlotUtility()
+    plotIt = PlotUtility()
     
     # move this dict to be read from file
 #    functionDict = {
@@ -121,178 +121,211 @@ if __name__ == "__main__":
     #funcDict = dSet.load_obj('func_dict')
     
     df = dSet.read_issue_data(issue)
+    dataLoadStartDate = df.Date[0]
+    print(dataLoadStartDate)
+    lastRow = df.shape[0]
+    dataLoadEndDate = df.Date[lastRow-1]
+    print(dataLoadEndDate)
     df = dSet.set_date_range(df, dataLoadStartDate,dataLoadEndDate)
+    df.fillna(method='ffill', inplace=True)
     
     # Example
     # RSI, 20d period, no transform
     input_dict = {} # initialize 
-    input_dict = {'f1': 
-                  {'fname' : 'RSI', 
-                   'params' : [10]
-                   },
-                  'f2': 
-                  {'fname' : 'UltimateOscillator', 
-                   'params' : [10 , 20, 30]
-                   },
-                  'f3': 
-                  {'fname' : 'UltimateOscillator',
-                   'params' : [],
-                   'transform' : ['Normalized', 100]
-                   },
-                  'f4': 
-                  {'fname' : 'RSI', 
-                   'params' : [10],
-                   'transform' : ['Zscore', 3]
-                   },
-                  'f5': 
-                  {'fname' : 'RSI', 
-                   'params' : [3],
-                   'transform' : ['Scaler', 'robust']
-                   },
-                  'f6': 
-                  {'fname' : 'RSI', 
-                   'params' : [10],
-                   'transform' : ['Center', 3]
-                   },
-                  'f7': 
-                  {'fname' : 'Lag', 
-                   'params' : ['Close', 3]
-                   },
-                  'f8': 
-                  {'fname' : 'PPO', 
-                   'params' : [12, 26]
-                   },
-                  'f9': 
-                  {'fname' : 'CMO', 
-                   'params' : [10]
-                   },
-                  'f10': 
-                  {'fname' : 'CCI', 
-                   'params' : [10]
-                   },
-                  'f11': 
-                  {'fname' : 'ROC', 
-                   'params' : [10]
-                   },
-                  'f12': 
-                  {'fname' : 'ATR', 
-                   'params' : [10]
-                   },
-                  'f13': 
-                  {'fname' : 'NATR', 
-                   'params' : [10]
-                   },
-                  'f14': 
-                  {'fname' : 'ATRRatio', 
-                   'params' : [10, 30]
-                   },
-                  'f15': 
-                  {'fname' : 'DeltaATRRatio', 
-                   'params' : [10, 50]
-                   },
-                  'f16': 
-                  {'fname' : 'BBWidth', 
-                   'params' : [10]
-                   },
-                  'f17': 
-                  {'fname' : 'HigherClose', 
-                   'params' : [4]
-                   },
-                  'f18': 
-                  {'fname' : 'LowerClose', 
-                   'params' : [4]
-                   },
-                  'f19': 
-                  {'fname' : 'ChaikinAD', 
-                   'params' : []
-                   },
-                  'f20': 
-                  {'fname' : 'ChaikinADOSC', 
-                   'params' : [4, 10],
-                   'transform' : ['Normalized', 100]
-                   },
-                  'f21': 
-                  {'fname' : 'OBV', 
-                   'params' : [],
-                   'transform' : ['Zscore', 3]
-                   },
-                  'f22': 
-                  {'fname' : 'MFI', 
-                   'params' : [14],
-                   'transform' : ['Zscore', 3]
-                   },
-                  'f23': 
-                  {'fname' : 'ease_OfMvmnt', 
-                   'params' : [14],
-                   'transform' : ['Zscore', 3]
-                   },
-                  'f24': 
-                  {'fname' : 'exp_MA', 
-                   'params' : [4]
-                   },
-                  'f25': 
-                  {'fname' : 'simple_MA', 
-                   'params' : [4]
-                   },
-                  'f26': 
-                  {'fname' : 'weighted_MA', 
-                   'params' : [4]
-                   },
-                  'f27': 
-                  {'fname' : 'triple_EMA', 
-                   'params' : [4]
-                   },
-                  'f28': 
-                  {'fname' : 'triangMA', 
-                   'params' : [4]
-                   },
-                  'f29': 
-                  {'fname' : 'dblEMA', 
-                   'params' : [4]
-                   },
-                  'f30': 
-                  {'fname' : 'kaufman_AMA', 
-                   'params' : [4]
-                   },
-                  'f31': 
-                  {'fname' : 'delta_MESA_AMA', 
-                   'params' : [0.9, 0.1],
-                   'transform' : ['Normalized', 20]
-                   },
-                  'f32': 
-                  {'fname' : 'inst_Trendline', 
-                   'params' : []
-                   },
-                  'f33': 
-                  {'fname' : 'mid_point', 
-                   'params' : [4]
-                   },
-                  'f34': 
-                  {'fname' : 'mid_price', 
-                   'params' : [4]
-                   },
-                  'f35': 
-                  {'fname' : 'pSAR', 
-                   'params' : [4]
-                   }
-                 }
-               
-    df = featureGen.generate_features(df, input_dict)
+    input_dict = {'f1': {'fname': 'PPO', 'params': [2, 5], 'transform': ['Normalized', 20]},
+  'f10': {'fname': 'kaufman_AMA',
+  'params': [4],
+  'transform': ['Normalized', 20]},
+ 'f2': {'fname': 'RSI', 'params': [2], 'transform': ['Normalized', 20]},
+ 'f3': {'fname': 'CMO', 'params': [5], 'transform': ['Normalized', 20]},
+ 'f4': {'fname': 'CCI', 'params': [10], 'transform': ['Normalized', 20]},
+ 'f5': {'fname': 'UltimateOscillator',
+  'params': [10, 20, 30],
+  'transform': ['Normalized', 20]},
+ 'f6': {'fname': 'ROC', 'params': [10], 'transform': ['Normalized', 20]},
+ 'f7': {'fname': 'Lag',
+  'params': ['Close', 3],
+  'transform': ['Normalized', 20]},
+ 'f8': {'fname': 'Lag',
+  'params': ['Close', 5],
+  'transform': ['Normalized', 20]},
+ 'f9': {'fname': 'ChaikinADOSC',
+  'params': [4, 10],
+  'transform': ['Normalized', 20]}}
+#    input_dict = {'f1': 
+#                  {'fname' : 'RSI', 
+#                   'params' : [10],
+#                   'transform' : ['Scaler', 'robust']
+#                   },
+#                  'f2': 
+#                  {'fname' : 'UltimateOscillator', 
+#                   'params' : [10 , 20, 30],
+#                   'transform' : ['Normalized', 100]
+#                   },
+#                  'f3': 
+#                  {'fname' : 'UltimateOscillator',
+#                   'params' : [],
+#                   'transform' : ['Normalized', 100]
+#                   },
+#                  'f4': 
+#                  {'fname' : 'RSI', 
+#                   'params' : [10],
+#                   'transform' : ['Zscore', 3]
+#                   },
+#                  'f5': 
+#                  {'fname' : 'RSI', 
+#                   'params' : [3],
+#                   'transform' : ['Scaler', 'robust']
+#                   },
+#                  'f6': 
+#                  {'fname' : 'RSI', 
+#                   'params' : [10],
+#                   'transform' : ['Center', 3]
+#                   },
+#                  'f7': 
+#                  {'fname' : 'Lag', 
+#                   'params' : ['Close', 3]
+#                   },
+#                  'f8': 
+#                  {'fname' : 'PPO', 
+#                   'params' : [12, 26]
+#                   },
+#                  'f9': 
+#                  {'fname' : 'CMO', 
+#                   'params' : [10]
+#                   },
+#                  'f10': 
+#                  {'fname' : 'CCI', 
+#                   'params' : [10]
+#                   },
+#                  'f11': 
+#                  {'fname' : 'ROC', 
+#                   'params' : [10]
+#                   },
+#                  'f12': 
+#                  {'fname' : 'ATR', 
+#                   'params' : [10]
+#                   },
+#                  'f13': 
+#                  {'fname' : 'NATR', 
+#                   'params' : [10]
+#                   },
+#                  'f14': 
+#                  {'fname' : 'ATRRatio', 
+#                   'params' : [10, 30]
+#                   },
+#                  'f15': 
+#                  {'fname' : 'DeltaATRRatio', 
+#                   'params' : [10, 50]
+#                   },
+#                  'f16': 
+#                  {'fname' : 'BBWidth', 
+#                   'params' : [10]
+#                   },
+#                  'f17': 
+#                  {'fname' : 'HigherClose', 
+#                   'params' : [4]
+#                   },
+#                  'f18': 
+#                  {'fname' : 'LowerClose', 
+#                   'params' : [4]
+#                   },
+#                  'f19': 
+#                  {'fname' : 'ChaikinAD', 
+#                   'params' : []
+#                   },
+#                  'f20': 
+#                  {'fname' : 'ChaikinADOSC', 
+#                   'params' : [4, 10],
+#                   'transform' : ['Normalized', 100]
+#                   },
+#                  'f21': 
+#                  {'fname' : 'exp_MA', 
+#                   'params' : [3]
+#                   },
+#                  'f22': 
+#                  {'fname' : 'MFI', 
+#                   'params' : [14]
+#                   },
+#                  'f23': 
+#                  {'fname' : 'ease_OfMvmnt', 
+#                   'params' : [14],
+#                   'transform' : ['Zscore', 3]
+#                   },
+#                  'f24': 
+#                  {'fname' : 'exp_MA', 
+#                   'params' : [4]
+#                   },
+#                  'f25': 
+#                  {'fname' : 'simple_MA', 
+#                   'params' : [4]
+#                   },
+#                  'f26': 
+#                  {'fname' : 'weighted_MA', 
+#                   'params' : [4]
+#                   },
+#                  'f27': 
+#                  {'fname' : 'triple_EMA', 
+#                   'params' : [4]
+#                   },
+#                  'f28': 
+#                  {'fname' : 'triangMA', 
+#                   'params' : [4]
+#                   },
+#                  'f29': 
+#                  {'fname' : 'dblEMA', 
+#                   'params' : [4]
+#                   },
+#                  'f30': 
+#                  {'fname' : 'kaufman_AMA', 
+#                   'params' : [4]
+#                   },
+#                  'f31': 
+#                  {'fname' : 'delta_MESA_AMA', 
+#                   'params' : [0.9, 0.1],
+#                   'transform' : ['Normalized', 50]
+#                   },
+#                  'f32': 
+#                  {'fname' : 'inst_Trendline', 
+#                   'params' : []
+#                   },
+#                  'f33': 
+#                  {'fname' : 'mid_point', 
+#                   'params' : [4]
+#                   },
+#                  'f34': 
+#                  {'fname' : 'mid_price', 
+#                   'params' : [4]
+#                   },
+#                  'f35': 
+#                  {'fname' : 'pSAR', 
+#                   'params' : [4]
+#                   },
+#                  'f36': 
+#                  {'fname' : 'MFI', 
+#                   'params' : [4]
+#                   }
+#                 }
+#               
+    df2 = featureGen.generate_features(df, input_dict)
+    
+    #print(df2.tail(10))
             
     # Plot price and indicators
-    startDate = "2015-02-01"
-    endDate = "2015-06-30"
+    startDate = "2018-11-01"
+    endDate = "2019-02-01"
 
-    plotDataSet = df[startDate:endDate]
-#    plot_dict = {}
-#    plot_dict['Issue'] = issue
-#    plot_dict['Plot_Vars'] = list(feature_dict.keys())
-#    plot_dict['Volume'] = 'Yes'
-#    plotIt.price_Ind_Vol_Plot(plot_dict, plotDataSet)
-    
-    # Drop columns where value is 'Drop'
-    col_vals=['Open', 'High', 'Close', 'Low']
-    corrDataSet = dSet.drop_columns(plotDataSet, col_vals)
-    col_vals = [k for k,v in feature_dict.items() if v == 'Drop']
-    corrDataSet = dSet.drop_columns(corrDataSet, col_vals)
-    plotIt.correlation_matrix(corrDataSet)
+    plotDataSet = df2[startDate:endDate]
+    plot_dict = {}
+    plot_dict['Issue'] = issue
+    plot_dict['Plot_Vars'] = [k for k,v in feature_dict.items() if v == 'Keep']
+    #plot_dict['Plot_Vars'] = list(feature_dict.keys())
+    plot_dict['Volume'] = 'Yes'
+    plotIt.price_Ind_Vol_Plot(plot_dict, plotDataSet)
+#    
+#    # Drop columns where value is 'Drop'
+#    col_vals=['Open', 'High', 'Close', 'Low']
+#    corrDataSet = dSet.drop_columns(plotDataSet, col_vals)
+#    col_vals = [k for k,v in feature_dict.items() if v == 'Drop']
+#    corrDataSet = dSet.drop_columns(corrDataSet, col_vals)
+#    plotIt.correlation_matrix(corrDataSet)
