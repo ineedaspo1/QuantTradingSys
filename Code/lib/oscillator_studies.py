@@ -9,7 +9,7 @@ from Code.lib.config import current_feature, feature_dict
 
 class OscialltorStudies:
     """Group of oscillator-based indicator features"""
-    def detrend_PO(self, df, col, lb):
+    def detrend_PO(self, df, lb):
         """<add content here>
            Args:
                 p: data series
@@ -22,7 +22,7 @@ class OscialltorStudies:
         col_name = 'DPO_' + str(lb)
         current_feature['Latest'] = col_name
         feature_dict[col_name] = 'Keep'
-        
+        col = 'Close'
         p = df[col]
         nrows = p.shape[0]
         ma = p.ewm(span=lb,
@@ -53,8 +53,8 @@ if __name__ == "__main__":
                                   dataLoadEndDate
                                   )
 
-    dataSet = oscSt.detrend_PO(dataSet, 'Close', 10)
-    dataSet = oscSt.detrend_PO(dataSet, 'Close', 50)
+    dataSet = oscSt.detrend_PO(dataSet, 10)
+    dataSet = oscSt.detrend_PO(dataSet, 50)
 
     startDate = "2015-02-01"
     endDate = "2015-06-30"

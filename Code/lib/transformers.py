@@ -44,7 +44,7 @@ class Transformers:
         df[col_name] = z
         return df
 
-    def add_lag(self, df, lag_var, lag):
+    def add_lag(self, df, lag=2):
         """Add lag to any time-based series
 
             Args:
@@ -62,17 +62,19 @@ class Transformers:
                         lags,
                         feature_dict)
         """
+        # hard coded use of 'Close' for now
+        lag_var = 'Close'
         col_name = lag_var + "_lag" + str(lag)
         current_feature['Latest'] = col_name
         feature_dict[col_name] = 'Keep'
         df[col_name] = df[lag_var].shift(-lag)
-        print(df[col_name].tail(20))
+        #print(df[col_name].tail(20))
         df[col_name] = df[col_name].fillna(df[col_name].rolling(lag*2,center=True,min_periods=1).mean())
 #        df['rollmean3']  = df[col_name].rolling(1,center=True,min_periods=1).mean()
 #        df['update'] = df['rollmean3']
 #        df['update'].update( df[col_name] )
-        print("===============")
-        print(df.tail(20))
+        #print("===============")
+        #print(df.tail(20))
         return df
 
     def centering(self, df, col, lb=14, type='median'):
@@ -137,7 +139,7 @@ class Transformers:
         scaler = RobustScaler(quantile_range=(25, 75))
         df[[col_name]] = scaler.fit_transform(df[[col_name]])
         # scale values skipping nan's
-        scaler = MinMaxScaler(feature_range=(0, 1))
+        scaler = MinMaxScaler(feature_range=(-1, 1))
         null_index = df[col_name].isnull()
         df.loc[~null_index, [col_name]] = scaler.fit_transform(df.loc[~null_index, [col_name]])
         return df
@@ -242,8 +244,14 @@ if __name__ == "__main__":
     
     input_dict = {} # initialize 
     input_dict = {'f1': 
-                  {'fname' : 'Lag', 
-                   'params' : ['Close', 2]
+                  {'fname' : 'OBV', 
+                   'params' : [9],
+                   'transform':  ['Scaler', 'Robust']
+                   },
+                  'f2': 
+                  {'fname' : 'OBV', 
+                   'params' : [],
+                   'transform':  ['Normalized', 10]
                    }
                   }
     

@@ -70,7 +70,7 @@ class ModelUtility:
             print('{0:>30} {1:2.2f}'.format("Rate of Missing Chances: ", rmc))
             print('{0:>30} {1:2.2f}'.format("Rate of Failure: ", rf))
             print('{0:>30} {1:2.2f}'.format("Neg Pred Value (NPV): ", npv))
-            print('{0:>30} {1:2.2f}'.format("MCC: ", mcc))
+            print('{0:>30} {1:2.2f} {2}'.format("MCC: ", mcc, "(+1 represents a perfect prediction)"))
         return return_cm
  
     def cm_plot(self, cm, type):
@@ -137,7 +137,7 @@ class ModelUtility:
         ev_beLong = self.get_evData_avg(ev_data, 1)
         cb = np.array([[0.0, ev_not_beLong], [0, ev_beLong]])
         exp_value = self.find_expected_value(cm_data, cb)
-        print('{0:>30} {1:.3%}'.format("Expected Value: ", exp_value))
+        print('{0:>30} {1:.3%}'.format("Expected Value: ", exp_value*100))
         print ("\n")
         return exp_value
     
@@ -206,6 +206,7 @@ class ModelUtility:
         #print(oos_cm_results)
         
         col_save = [k for k,v in feature_dict.items() if v == 'Keep']
+        feature_count = len(col_save)
         
         model_results.append({'Issue': info_dict['issue'],
                               'StartDate': info_dict['modelStartDate'].strftime("%Y-%m-%d"),
@@ -213,7 +214,8 @@ class ModelUtility:
                               'Model': info_dict['modelname'],
                               'Rows': info_dict['nrows'], 
                               'beLongCount': str(np.count_nonzero(dy==1)), 
-                              'Features': col_save, 
+                              'Features': col_save,
+                              'FeatureCount': feature_count,
                               'IS-Accuracy': np.mean(accuracy_scores_is),
                               'IS-Precision': np.mean(precision_scores_is),
                               'IS-RMC': is_cm_results["rmc"],
@@ -417,7 +419,7 @@ if __name__ == "__main__":
     evData = dataSet.loc[modelStartDate:modelEndDate].copy()
     
     col_vals = [k for k,v in feature_dict.items() if v == 'Drop']
-    to_drop = ['Open','High','Low', 'gainAhead', 'Symbol', 'Date', 'Close']
+    to_drop = ['Open','High','Low', 'gainAhead', 'Close']
     for x in to_drop:
         col_vals.append(x)
     mmData = dSet.drop_columns(mmData, col_vals)

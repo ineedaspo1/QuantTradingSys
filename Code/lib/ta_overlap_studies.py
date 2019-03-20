@@ -167,7 +167,7 @@ class TALibOverlapStudies:
         df[col_name] = ta.KAMA(df.Close, period)
         return df
 
-    def mesa_AMA(self, df, flimit, slimit):
+    def mesa_AMA(self, df, flimit=0.5, slimit=0.05):
         """The MESA Adaptive Moving Average is a technical trend-following
         indicator which, according to its creator, adapts to price movement
         “based on the rate change of phase as measured by the Hilbert Transform
@@ -189,7 +189,7 @@ class TALibOverlapStudies:
         df['MAMA'], df['FAMA'] = ta.MAMA(df.Close, flimit, slimit)
         return df
     
-    def delta_MESA_AMA(self, df, flimit, slimit):
+    def delta_MESA_AMA(self, df, flimit=0.5, slimit=0.05):
         col_name = 'DeltaMesaAMA_f' + str(flimit) + '_s' + str(slimit)
         current_feature['Latest'] = col_name
         feature_dict[col_name] = 'Keep'

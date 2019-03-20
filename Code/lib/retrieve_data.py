@@ -34,23 +34,38 @@ class USTradingCalendar(AbstractHolidayCalendar):
 
 class DataRetrieve:   
     """Class of functions used to retrieve issue data"""
-    def read_pickle_data(self, file_name, issue):
+    def read_pickle_price_data(self, issue):
         """Reads data from a pickle file   
            Args:
-                file_name: filename of pickle file
                 issue: symbol of data to be retrieved
            Return:
                 df: Dataframe of issue data
         """
+        issue_name = issue + '.pkl'
+        file_name = os.path.join(r'C:\Users\kruegkj\kevinkr OneDrive\OneDrive\IssueData\Equity', issue_name)
         try:
             df = pd.read_pickle(file_name)
         except:
-            print("================================")
             print("No information for ticker '%s'" % issue)
-            print("================================")
             raise SystemExit
         print ("Successfully retrieved data series for " + issue)
         return df
+    
+    def save_pickle_price_data(self, issue, df):
+        """Save price data to a pickle file   
+           Args:
+                issue: symbol of data to be retrieved
+           Return:
+                saved message
+        """
+        issue_name = issue + '.pkl'
+        file_name = os.path.join(r'C:\Users\kruegkj\kevinkr OneDrive\OneDrive\IssueData\Equity', issue_name)
+        try:
+            df.to_pickle(file_name)
+        except:
+            print("Save issue for ticker '%s'" % issue)
+            raise SystemExit
+        print ("Successfully saved data series for " + issue)
         
     def read_issue_data(self, issue):
         """Reads equity from a pickle file   
@@ -61,9 +76,7 @@ class DataRetrieve:
            To update: Set location of filename location outside of class
         """
         self.issue = issue
-        issue_name = issue + '.pkl'
-        file_name = os.path.join(r'C:\Users\kruegkj\kevinkr OneDrive\OneDrive\IssueData\Equity', issue_name)
-        df = self.read_pickle_data(file_name, issue)
+        df = self.read_pickle_price_data(issue)
         return df
     
     def read_fred_data(self, issue):
@@ -127,14 +140,26 @@ class DataRetrieve:
         df3 = df2[col_vals]
         return df3
     
-    def save_obj(self, obj, name ):
-        with open('../obj/'+ name + '.pkl', 'wb+') as f:
-            pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
-    
-    def load_obj(self, name):
-        with open('../obj/' + name + '.pkl', 'rb') as f:
+#    def save_obj(self, obj, name ):
+#        with open('../obj/'+ name + '.pkl', 'wb+') as f:
+#            pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+#    
+#    def load_obj(self, name):
+#        with open('../obj/' + name + '.pkl', 'rb') as f:
+#            return pickle.load(f)
+        
+    def save_pickle(self, data, system_directory, file_name):
+        file_path = os.path.join(system_directory, file_name)
+        #file_name = file_path + ".pkl"
+        with open(file_path, 'wb') as fp:
+            pickle.dump(data, fp, protocol=pickle.HIGHEST_PROTOCOL)
+        
+    def load_pickle(self, system_directory, file_name):
+        file_path = os.path.join(system_directory, file_name)
+        #file_name = file_path + ".pkl"
+        with open(file_path, 'rb') as f:
             return pickle.load(f)
-    
+        
     # functions for save and load json files
     def save_json(self, filename, system_directory, json_file):
         # Save system_dict to file

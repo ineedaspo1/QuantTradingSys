@@ -132,26 +132,7 @@ if __name__ == "__main__":
     # Example
     # RSI, 20d period, no transform
     input_dict = {} # initialize 
-    input_dict = {'f1': {'fname': 'PPO', 'params': [2, 5], 'transform': ['Normalized', 20]},
-  'f10': {'fname': 'kaufman_AMA',
-  'params': [4],
-  'transform': ['Normalized', 20]},
- 'f2': {'fname': 'RSI', 'params': [2], 'transform': ['Normalized', 20]},
- 'f3': {'fname': 'CMO', 'params': [5], 'transform': ['Normalized', 20]},
- 'f4': {'fname': 'CCI', 'params': [10], 'transform': ['Normalized', 20]},
- 'f5': {'fname': 'UltimateOscillator',
-  'params': [10, 20, 30],
-  'transform': ['Normalized', 20]},
- 'f6': {'fname': 'ROC', 'params': [10], 'transform': ['Normalized', 20]},
- 'f7': {'fname': 'Lag',
-  'params': ['Close', 3],
-  'transform': ['Normalized', 20]},
- 'f8': {'fname': 'Lag',
-  'params': ['Close', 5],
-  'transform': ['Normalized', 20]},
- 'f9': {'fname': 'ChaikinADOSC',
-  'params': [4, 10],
-  'transform': ['Normalized', 20]}}
+    input_dict = {'f1': {'fname': 'ChaikinADOSC', 'params': [2, 3], 'transform': ['Normalized', 20]}}
 #    input_dict = {'f1': 
 #                  {'fname' : 'RSI', 
 #                   'params' : [10],

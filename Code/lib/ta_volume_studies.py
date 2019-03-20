@@ -100,7 +100,7 @@ class TALibVolumeStudies:
         feature_dict[col_name] = 'Keep'
         
         df = df2.copy()
-
+        
         print('column name: ', col_name)
         df['Up_or_Down'] = 0
         df.loc[(df['Close'] > df['Close'].shift(-1)), 'Up_or_Down'] = 1
@@ -123,7 +123,8 @@ class TALibVolumeStudies:
         df['1p_Negative_Money_Flow'] = 0.0
         df.loc[df['Up_or_Down'] == 2, '1p_Negative_Money_Flow'] = mf
         n_negative_mf = df['1p_Negative_Money_Flow'].rolling(period).sum()
-        df = df.drop(['1p_Positive_Money_Flow','Up_or_Down','1p_Negative_Money_Flow'], axis=1)  
+        #df.drop(['1p_Positive_Money_Flow','Up_or_Down','1p_Negative_Money_Flow'], axis=1)  
+        
         
         # 4 money flow index
         mr = n_positive_mf / n_negative_mf
@@ -131,10 +132,15 @@ class TALibVolumeStudies:
         #print('============mr==========')
         #print(mr.tail(20))
         df[col_name] = (100 - (100 / (1 + n_positive_mf / n_negative_mf)))
+        #df = df.drop(['1p_Positive_Money_Flow','Up_or_Down','1p_Negative_Money_Flow'], axis='columns')
+        
+        df2[col_name] = df[col_name]
+        del df
         #print('============df[col_name]==========')
         #print(col_name)
-        #print(df[col_name].tail(10))
-        return df
+        print(list(df2))
+        
+        return df2
     
  
 class CustVolumeStudies:
@@ -189,30 +195,27 @@ if __name__ == "__main__":
                                   )      
     dataSet.fillna(method='ffill', inplace=True)
     input_dict = {} # initialize 
-    input_dict = {'f1': 
-                  {'fname' : 'ChaikinAD', 
-                   'params' : []
-                   },
-                  'f2': 
-                  {'fname' : 'ease_OfMvmnt', 
-                   'params' : [10]
-                   },
-                  'f3': 
-                  {'fname' : 'MFI', 
-                   'params' : [101],
-                   'transform' : ['Normalized', 100]
-                   },
-                  'f4': 
-                  {'fname' : 'MFI', 
-                   'params' : [20],
-                   'transform' : ['Normalized', 10]
-                   },
-                  'f5': 
-                  {'fname' : 'MFI', 
-                   'params' : [3],
-                   'transform' : ['Scaler', 'robust']
-                   },
-                  }
+    input_dict = input_dict = {'f1': 
+                      {'fname' : 'PPO', 
+                       'params' : [2,5],
+                       'transform' : ['Normalized', 20]
+                       },
+                      'f2': 
+                      {'fname' : 'MFI', 
+                       'params' : [2],
+                       'transform' : ['Normalized', 20]
+                       },
+                      'f3': 
+                      {'fname' : 'MFI', 
+                       'params' : [2],
+                       'transform' : ['Scaler', 'Robust']
+                       },
+                      'f4': 
+                      {'fname' : 'OBV', 
+                       'params' : [],
+                       'transform' : ['Normalized', 20]
+                       }
+                     }
     
     dataSet2 = featureGen.generate_features(dataSet, input_dict)
 #    dataSet = taLibVolSt.ChaikinAD(dataSet)
@@ -222,7 +225,7 @@ if __name__ == "__main__":
 #    dataSet = custVolSt.ease_OfMvmnt(dataSet, 14)
     
     startDate = "2015-02-01"
-    endDate = "2018-04-12"
+    endDate = "2015-06-12"
     plotDF = dataSet2[startDate:endDate]
     
     # Set up dictionary and plot HigherClose
