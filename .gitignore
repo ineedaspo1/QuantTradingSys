@@ -60,3 +60,5 @@ Temporary Items
 *.sav
 *.pkl
 *.json
+Code/models/*.xlsx
+Code/models/*/*/*.xlsx
