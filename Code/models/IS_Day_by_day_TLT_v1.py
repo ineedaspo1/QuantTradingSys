@@ -3,6 +3,7 @@
 Created on Mon Mar  4 10:35:32 2019
 
 @author: KRUEGKJ
+IS day by day
 """
 
 # Import standard libraries
@@ -86,17 +87,15 @@ if __name__ == '__main__':
         system_dict['segments'] = segments
     
         system_name = system_dict['system_name']
-        system_directory = sysUtil.get_system_dir(system_name)
         
-        dSet.save_json('system_dict.json', system_directory, system_dict)
+        sysUtil.save_dict(system_name, 'system_dict', system_dict)
     else:
         print("Existing system")
         system_directory = sysUtil.get_system_dir(system_name)
-        file_name = 'system_dict.json'
-        system_dict = dSet.load_json(system_directory, file_name)
+        system_dict = sysUtil.get_dict(system_directory, 'system_dict')
         
     print(system_dict)
-        
+    system_directory = sysUtil.get_system_dir(system_name)  
     # Set IS-OOS parameters
     pivotDate = system_dict['pivotDate']
     #pivotDate = datetime.strptime(pivotDate, '%Y-%m-%d')
@@ -162,7 +161,7 @@ if __name__ == '__main__':
     system_dict['extInputDict'] = ext_input_dict
     
     # now save locally to system
-    dSet.save_pickle(input_dict, system_directory, 'input_dict')    
+    sysUtil.save_dict(system_name, 'input_dict', input_dict)    
 
     dataSet2 = featureGen.generate_features(dataSet, input_dict)
     dataSet2 = transf.normalizer(dataSet, 'Volume', 50)
@@ -171,8 +170,6 @@ if __name__ == '__main__':
     # save Dataset of analysis
     # THIS SHOULD BE A FUNCTION
     print("====Saving dataSet====\n")
-    print(system_directory)
-    print(system_name)
     file_title = "raw-features-" + system_name + ".pkl"
     file_name = os.path.join(system_directory, file_title)
     dataSet2.to_pickle(file_name)
@@ -203,8 +200,8 @@ if __name__ == '__main__':
             feature_dict[x] = 'Drop'
         print(feature_dict)
     # Save feature_dict
-    dSet.save_json('feature_dict.json', system_directory, feature_dict)
-    
+    sysUtil.save_dict(system_name, 'feature_dict', feature_dict) 
+
     #
     # Starting to set time frames for IS analysis
     # Make sure analysis is complete for all time segments and
@@ -338,17 +335,11 @@ if __name__ == '__main__':
             ]]
     #print(df)
     
-    # Sace results
-    #dirext = system_name + '_start_' + str(dataLoadStartDate.strftime("%Y-%m-%d")) + '_end_' + str(pivotDate.strftime("%Y-%m-%d")) + '_' + datetime.datetime.now().strftime("%Y-%m-%d")
-    filename = system_name + "-IS_model_results.csv"
-    df.to_csv(system_directory+ "\\" + filename, encoding='utf-8', index=False)
-    
-    # Save best model
-    # verification of correct inputs can be added later
-#    x_input = input('Enter best model type: ')
-#    system_dict['best_model'] = str(x_input)
-#    y_input = input('Enter best model filename: ')
-#    system_dict['best_model_file'] = str(y_input)
-#    dSet.save_json('system_dict.json', system_directory, system_dict)
-#    print(system_dict)
+    # Save results
+    dSet.save_csv(system_directory,
+                  system_name,
+                  'IS_Equity',
+                  'new', 
+                  df
+                  )
     

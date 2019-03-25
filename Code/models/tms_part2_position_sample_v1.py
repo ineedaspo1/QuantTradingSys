@@ -66,7 +66,7 @@ forecastHorizon = 190
 initialEquity = 100000
 ddTolerance = 0.10
 tailRiskPct = 95
-windowLength = 1*forecastHorizon
+windowLength = .5*forecastHorizon
 nCurves = 50
 
 years_in_forecast = forecastHorizon / 252.0

@@ -8,9 +8,11 @@ Created on Mon Mar  4 11:06:54 2019
 import random
 import os
 import os.path
+import sys
+from Code.lib.retrieve_data import DataRetrieve
+dSet = DataRetrieve()
 
 class TradingSystemUtility:
-    
     # Function to generate system number
     def get_sys_number(self):
         # Generate four digit random number
@@ -34,8 +36,6 @@ class TradingSystemUtility:
     
     # function to get system_dict
     def get_system_dict(self, system_name, issue, direction, ver_num):
-        from Code.lib.retrieve_data import DataRetrieve
-        dSet = DataRetrieve()
         if system_name == "":
             sys_no = self.get_sys_number()
             system_name = self.get_system_name(issue, direction, sys_no, ver_num)
@@ -48,20 +48,49 @@ class TradingSystemUtility:
                            'system_name': system_name,
                            'ver_num': ver_num
                            }
-            dSet.save_json('system_dict.json', system_directory, system_dict)
+            self.save_dict(system_directory, 'system_dict', system_dict)
             return system_dict
         else:
             system_directory = self.get_system_dir(system_name)
-            if not os.path.exists(system_directory):
-                print("system doesn't exist")
-            else:
-                filename = 'system_dict.json'    
-                file_path = os.path.join(system_directory, filename)
-                system_dict = dSet.load_json(file_path)
-#                issue = system_dict["issue"]
-#                direction = system_dict["direction"]
-#                ver_num = system_dict["ver_num"]
-                return system_dict
+            system_dict = self.get_dict(system_directory, 'system_dict')
+            return system_dict
+    
+    def get_dict(self, system_directory, dict_name):
+        dict_lookup = {'system_dict': 'system_dict.json',
+                       'feature_dict': 'feature_dict.json',
+                       'input_dict': 'input_dict.pkl',
+                       'tms_dict': 'feature_dict.json'}
+        
+        file_name = dict_lookup[dict_name]
+        fn_split = file_name.split(".",1)
+        file_suffix = fn_split[1]
+        if file_suffix == 'json':
+            return_dict = dSet.load_json(system_directory, file_name)
+        elif file_suffix == 'pkl':
+            return_dict = dSet.load_pickle(system_directory, file_name)
+        else:
+            print('dict type not found')
+            sys.exit()
+        return return_dict
+    
+    def save_dict(self, system_directory, dict_name, dict_file):
+        dict_lookup = {'system_dict': 'system_dict.json',
+                       'feature_dict': 'feature_dict.json',
+                       'input_dict': 'input_dict.pkl',
+                       'tms_dict': 'feature_dict.json'}
+        
+        file_name = dict_lookup[dict_name]
+        fn_split = file_name.split(".",1)
+        file_suffix = fn_split[1]
+        if file_suffix == 'json':
+            dSet.save_json(file_name, system_directory, dict_file)
+            print(file_name + ' saved.')
+        elif file_suffix == 'pkl':
+            dSet.save_pickle(file_name, system_directory, dict_file)
+            print(file_name + ' saved.')
+        else:
+            print('dict type not found')
+            sys.exit()
             
 if __name__ == "__main__":
     sysUtil = TradingSystemUtility()

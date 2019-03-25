@@ -156,8 +156,45 @@ class PlotUtility:
         cm = cmdf.corr()
         fig, ax = plt.subplots(figsize=(size, size))
         ax.matshow(cm)
-        plt.xticks(range(len(cm.columns)), cm.columns);
-        plt.yticks(range(len(cm.columns)), cm.columns);
+        plt.xticks(range(len(cm.columns)), cm.columns)
+        plt.yticks(range(len(cm.columns)), cm.columns)
+        
+    def plot_equity_drawdown(self, issue, df):
+#        plot_tms = df.set_index(pd.DatetimeIndex(df['Date']))
+#        plot_tms=plot_tms.drop('Date', axis=1)
+        plotTitle = "Equity curve for  " + issue
+        self.plot_v1(df['equity'][:-2], plotTitle)
+        plotTitle = "Drawdown for  " + issue
+        self.plot_v1(df['drawdown'][:-2], plotTitle)
+        plt.show()
+        
+    def plot_CAR25_close(self, issue, df):
+        fig = plt.figure(figsize=(11,6))
+        fig.suptitle('CAR25 and issue price for' + issue)
+        ax1 = fig.add_subplot(111)
+        #ax1.plot(sst1.safef, color='green',label='safe-f')
+        ax1.plot(df.CAR25, color='blue',label='CAR25')
+        #ax1.plot(valData.equityValBeLongSignals, color='purple',label='ValBeLong')
+        
+        ax1.legend(loc='upper left', frameon=True, fontsize=8)
+        ax1.label_outer()
+        ax1.tick_params(axis='x',which='major',bottom=True)
+        ax1.minorticks_on()
+        ax1.grid(True, which='major', color='k', linestyle='-', alpha=0.6)
+        ax1.grid(True, which='minor', color='r', linestyle='-', alpha=0.2)
+        
+        #sst1['Pri']=valData.Pri
+        ax2 = ax1.twinx()
+        ax2.plot(df.Close,
+                 color='black',
+                 alpha=0.6,
+                 label='CLOSE',
+                 linestyle='--'
+                 )
+        ax2.legend(loc='center left', frameon=True, fontsize=8)
+        ax2.label_outer()
+        fig.autofmt_xdate()
+        plt.show()
 
 if __name__ == "__main__":
     from retrieve_data import DataRetrieve, ComputeTarget

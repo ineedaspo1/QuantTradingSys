@@ -6,6 +6,7 @@ Created on Sun Mar 17 20:11:33 2019
 """
 import numpy as np
 from scipy import stats
+import datetime as dt
 
 class TradeRisk:
     
@@ -18,10 +19,11 @@ class TradeRisk:
         windowLength = tms_dict["windowLength"]
         nCurves = tms_dict["nCurves"]
         updateInterval = tms_dict["updateInterval"]
+        print(tms_dict)
         
         years_in_forecast = forecastHorizon / 252.0
         
-        printDetails = False
+        printDetails = True
         
         for i in range(iStart, iEnd+1, updateInterval):
             if printDetails: 
@@ -88,7 +90,7 @@ class TradeRisk:
             #sst.loc[i,'CAR25'] = CAR25
         return sst
         
-    def update_tms(self, tms, iStart, iEnd, y_validate):
+    def update_tms_trade_dec(self, tms, iStart, iEnd, y_validate):
         # Update trade_decision with current date decision
         if y_validate[0] == 1: 
             if tms.iloc[iEnd,tms.columns.get_loc('CAR25')] > 10:
@@ -97,13 +99,22 @@ class TradeRisk:
                 tms.iloc[iEnd,tms.columns.get_loc('trade_decision')] = 'Flat'
         else:
             tms.iloc[iEnd,tms.columns.get_loc('trade_decision')] = 'Flat'
-            
+        temp_tms = self.update_tms(tms, iStart, iEnd)
+        return temp_tms
+     
+    def update_tms(self, tms, iStart, iEnd):
         for i in range(iStart, iEnd):
-            if (tms.trade_decision[i] == 'Long'):
+            if tms.trade_decision[i] == 'Long':
                 tms.iloc[i,tms.columns.get_loc('trade')] = tms.iloc[i-1,tms.columns.get_loc('fract')] * tms.iloc[i-1,tms.columns.get_loc('equity')] * tms.iloc[i,tms.columns.get_loc('gainAhead')]
-            elif np.logical_and((tms.signal[i] > 0), (tms.CAR25[i] > 10)):
-                tms.iloc[i,tms.columns.get_loc('trade')] = tms.iloc[i-1,tms.columns.get_loc('fract')] * tms.iloc[i-1,tms.columns.get_loc('equity')] * tms.iloc[i,tms.columns.get_loc('gainAhead')]
+            elif tms.signal[i] > 0:
+                print('signal > 0')
+                if tms.CAR25[i] > 10:
+                    print('CAR25 > 10')
+                    temp = tms.iloc[i-1,tms.columns.get_loc('fract')] * tms.iloc[i-1,tms.columns.get_loc('equity')] * tms.iloc[i,tms.columns.get_loc('gainAhead')]
+                    print(temp)
+                    tms.iloc[i,tms.columns.get_loc('trade')] = tms.iloc[i-1,tms.columns.get_loc('fract')] * tms.iloc[i-1,tms.columns.get_loc('equity')] * tms.iloc[i,tms.columns.get_loc('gainAhead')]
             else:
+                print('trade = 0')
                 tms.iloc[i,tms.columns.get_loc('trade')] = 0.0
                 
             tms.iloc[i,tms.columns.get_loc('fract')] = tms.iloc[i,tms.columns.get_loc('safef')]

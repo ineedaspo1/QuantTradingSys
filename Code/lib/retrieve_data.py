@@ -140,15 +140,15 @@ class DataRetrieve:
         df3 = df2[col_vals]
         return df3
     
-#    def save_obj(self, obj, name ):
-#        with open('../obj/'+ name + '.pkl', 'wb+') as f:
-#            pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
-#    
-#    def load_obj(self, name):
-#        with open('../obj/' + name + '.pkl', 'rb') as f:
-#            return pickle.load(f)
+    def save_obj(self, obj, name ):
+        with open('../obj/'+ name + '.pkl', 'wb+') as f:
+            pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+    
+    def load_obj(self, name):
+        with open('../obj/' + name + '.pkl', 'rb') as f:
+            return pickle.load(f)
         
-    def save_pickle(self, data, system_directory, file_name):
+    def save_pickle(self, file_name, system_directory, data):
         file_path = os.path.join(system_directory, file_name)
         #file_name = file_path + ".pkl"
         with open(file_path, 'wb') as fp:
@@ -173,6 +173,22 @@ class DataRetrieve:
         with open(file_path, 'r') as fp:
             json_file = json.load(fp)
         return json_file
+    
+    def save_csv(self, system_directory, system_name, filename, type, df):
+        type_lookup = {'new':'',
+                       'dbd': 'daybyday'}
+        fn_to_save = filename + '_' + type_lookup[type] + "_" + system_name + ".csv"
+        path = system_directory+ "\\" + fn_to_save
+        df.to_csv(path, encoding='utf-8', index=False)
+        print(fn_to_save + " saved.")
+    
+    def read_csv(self, system_directory, system_name, filename, type):
+        type_lookup = {'new':'',
+                       'dbd': 'daybyday'}
+        fn_to_read = filename + '_' + type_lookup[type] + "_" + system_name + ".csv"
+        path = system_directory+ "\\" + fn_to_read
+        print(fn_to_read + " read.")
+        return pd.read_csv(path)
     
 class ComputeTarget:
     

@@ -3,6 +3,7 @@
 Created on Fri Mar 15 19:34:25 2019
 
 @author: kruegkj
+Day by day EOD MTM
 """
 
 # Import standard libraries
@@ -46,52 +47,6 @@ modelAlgo = AlgoUtility()
 sysUtil = TradingSystemUtility()
 tradeRisk = TradeRisk()
 
-
-def get_dict(system_name, dict_name):
-    dict_lookup = {'system_dict': 'system_dict.json',
-                   'feature_dict': 'feature_dict.json',
-                   'input_dict': 'input_dict.pkl',
-                   'tms_dict': 'feature_dict.json'}
-    
-    system_directory = sysUtil.get_system_dir(system_name)
-    if not os.path.exists(system_directory):
-        print("system doesn't exist")
-    else:
-        file_name = dict_lookup[dict_name]
-        fn_split = file_name.split(".",1)
-        file_suffix = fn_split[1]
-        if file_suffix == 'json':
-            return_dict = dSet.load_json(system_directory, file_name)
-        elif file_suffix == 'pkl':
-            return_dict = dSet.load_pickle(system_directory, file_name)
-        else:
-            print('dict type not found')
-            sys.exit()
-    return return_dict
-
-def save_dict(system_name, dict_name, dict_file):
-    dict_lookup = {'system_dict': 'system_dict.json',
-                   'feature_dict': 'feature_dict.json',
-                   'input_dict': 'input_dict.pkl',
-                   'tms_dict': 'feature_dict.json'}
-    
-    system_directory = sysUtil.get_system_dir(system_name)
-    if not os.path.exists(system_directory):
-        print("system doesn't exist")
-    else:
-        file_name = dict_lookup[dict_name]
-        fn_split = file_name.split(".",1)
-        file_suffix = fn_split[1]
-        if file_suffix == 'json':
-            dSet.save_json(file_name, system_directory, dict_file)
-            print(file_name + ' saved.')
-        elif file_suffix == 'pkl':
-            dSet.save_pickle(file_name, system_directory, dict_file)
-            print(file_name + ' saved.')
-        else:
-            print('dict type not found')
-            sys.exit()        
-
 if __name__ == '__main__':
     
     # set to existing system name OR set to blank if creating new
@@ -105,7 +60,7 @@ if __name__ == '__main__':
     print("Existing system")
     
     # Get info from system_dict
-    system_dict = get_dict(system_name, 'system_dict')
+    system_dict = sysUtil.get_dict(system_directory, 'system_dict')
     issue = system_dict["issue"]
     
     is_oos_ratio = system_dict["is_oos_ratio"]
@@ -133,7 +88,7 @@ if __name__ == '__main__':
     modelStartDate = oos_start_date
     
     # Retrieve feature_dict
-    feature_dict = get_dict(system_name, 'feature_dict')
+    feature_dict = sysUtil.get_dict(system_directory, 'feature_dict')
     
     # get raw data 
     raw_df = dSet.read_issue_data(issue)
@@ -150,7 +105,7 @@ if __name__ == '__main__':
         skip_input = input("Skip date?: (Y/N)")
         if skip_input == 'Y':
             system_dict['pivotDate']=tradeDate.strftime('%Y-%m-%d')
-            save_dict(system_name, 'system_dict', system_dict)
+            sysUtil.save_dict(system_name, 'system_dict', system_dict)
             sys.exit()  
         open_input = input("Enter Open:")
         high_input = input("Enter High:")
@@ -175,27 +130,9 @@ if __name__ == '__main__':
     # set trade date
     tradeDate = tradeDate.strftime('%Y-%m-%d')
     print(tradeDate)
-    
-#    # set df to trade date range
-#    trimmed_df = raw_df.iloc[0:raw_df[raw_df.Date == tradeDate].index[0]]
-#    print(trimmed_df.tail(2))
-#
-#    price_loc = raw_df.index[raw_df.Date == tradeDate]
-#    index = price_loc[0]
-#    print(index)
-#
-#    # get Close from trade date
-#    new_open = raw_df.Close[index]
-#    print(new_open)
-#
-#    # append price to df
-#    new_data_df = trimmed_df.append({'Date' : tradeDate , 'Open' : raw_df.Open[index], 'High' : raw_df.High[index], 'Low' : raw_df.Low[index], 'Close' : raw_df.Close[index], 'AdjClose' : raw_df.AdjClose[index], 'Volume' : raw_df.Volume[index] } , ignore_index=True)
-#    print(new_data_df.tail(2))
-#
-    # get first row
+
+    # get first/last row
     df_start_date = temp_raw_df.Date[0]
-    
-    # get last row
     lastRow = temp_raw_df.shape[0]
     df_end_date = temp_raw_df.Date[lastRow-1]
     
@@ -206,13 +143,9 @@ if __name__ == '__main__':
     #set beLong level
     beLongThreshold = 0.000
     feat_df = ct.setTarget(temp_raw_df, "Long", beLongThreshold)
-    
-    print(feat_df.tail(2))
 
     # Adding features with new day
-    input_dict = get_dict(system_name, 'input_dict')
-    print(input_dict)
-
+    input_dict = sysUtil.get_dict(system_directory, 'input_dict')
     feat_df = featureGen.generate_features(feat_df, input_dict)
     feat_df = transf.normalizer(feat_df, 'Volume', 50)
     
@@ -246,26 +179,45 @@ if __name__ == '__main__':
     y_validate = model.predict(dX)
     print(y_validate[0])
     
-    filename = "OOS_Equity_daybyday_" + system_name + ".csv"
-    path = system_directory+ "\\" + filename
-    shadow_trades = pd.read_csv(path)
+    # Get latest shadow trades
+    shadow_trades = dSet.read_csv(system_directory,
+                                  system_name,
+                                  'OOS_Equity',
+                                  'dbd'
+                                  )
     
     # Update shadow trades
-    new_st_df = shadow_trades.append({'Date' : tradeDate , 'signal' : y_validate[0], 'gainAhead' : 0.000, 'Close' : feat_df.Close[lastRow-1] } , ignore_index=True)
+    new_st_df = shadow_trades.append({'Date'     :tradeDate,
+                                      'signal'   :y_validate[0],
+                                      'gainAhead':0.000,
+                                      'Close'    :feat_df.Close[lastRow-1]}
+                                      ,ignore_index=True
+                                      )
     
     new_st_df['gainAhead'] = ct.gainAhead(new_st_df.Close)
     
     # save updated shadow trades
-    filename = "OOS_Equity_daybyday_" + system_name + ".csv"
-    new_st_df.to_csv(system_directory+ "\\" + filename, encoding='utf-8', index=False)
+    dSet.save_csv(system_directory,
+                  system_name,
+                  'OOS_Equity',
+                  'dbd', 
+                  new_st_df
+                  )
 
     # Load TMS Part 1
-    filename = "TMS_Part1_daybyday_" + system_name + ".csv"
-    path = system_directory+ "\\" + filename
-    tms1 = pd.read_csv(path)
+    tms1 = dSet.read_csv(system_directory,
+                         system_name,
+                         'TMS_Part1',
+                         'dbd'
+                         )
     
     # Update TMS-Part 1 data with latest date
-    sst = tms1.append({'Date' : tradeDate , 'signal' : y_validate[0], 'gainAhead' : 0, 'Close' :  feat_df.Close[lastRow-1]} , ignore_index=True)
+    sst = tms1.append({'Date'      :tradeDate,
+                       'signal'    :y_validate[0],
+                       'gainAhead' :0,
+                       'Close'     :feat_df.Close[lastRow-1]}
+                       , ignore_index=True
+                      )
     sst.tail(3)
     
     # Update with gainAhead
@@ -276,22 +228,23 @@ if __name__ == '__main__':
     end = sst.index[-1]
     iStart = sst.index.get_loc(end)-1
     iEnd = sst.index.get_loc(end)
-    
-    # retrieve tms_dict
-    file_name = 'tms_dict.json'
-    tms_dict = dSet.load_json(system_directory, file_name)
+
+    tms_dict = sysUtil.get_dict(system_directory, 'tms_dict')
     
     sst = tradeRisk.get_safef_car25(sst, iStart, iEnd, tms_dict)
-    
-    #df_to_save = sst.copy()
-    #df_to_save.reset_index(level=df_to_save.index.names, inplace=True)
-    filename = "TMS_Part1_daybyday_" + system_name + ".csv"
-    sst.to_csv(system_directory+ "\\" + filename, encoding='utf-8', index=False)
+    dSet.save_csv(system_directory,
+                  system_name,
+                  'TMS_Part1',
+                  'dbd',
+                  sst
+                  )
     
     # Now go to TMS Part 2
-    filename = "TMS_Part2_daybyday_" + system_name + ".csv"
-    path = system_directory+ "\\" + filename
-    tms2 = pd.read_csv(path)
+    tms2 = dSet.read_csv(system_directory,
+                         system_name,
+                         'TMS_Part2',
+                         'dbd'
+                         )
     tms2.tail(3)
     
     # Append last day form TMS Part 1 to TMS Part 2
@@ -310,47 +263,23 @@ if __name__ == '__main__':
     # Update gainAhead
     tms21.iloc[iStart,tms21.columns.get_loc('gainAhead')] = sst1.iloc[iStart,sst1.columns.get_loc('gainAhead')]
     
-    tms21 = tradeRisk.update_tms(tms21, iStart, iEnd, y_validate)
+    tms21 = tradeRisk.update_tms_trade_dec(tms21, iStart, iEnd, y_validate)
     
     print(tms21.tail(4))
         
-    df_to_save = tms21.copy()
-    #df_to_save.reset_index(level=df_to_save.index.names, inplace=True)
-    filename = "TMS_Part2_daybyday_" + system_name + ".csv"
-    df_to_save.to_csv(system_directory+ "\\" + filename, encoding='utf-8', index=False)
+    dSet.save_csv(system_directory,
+                  system_name,
+                  'TMS_Part2',
+                  'dbd',
+                  tms21
+                  )
     
     system_dict['pivotDate']=tradeDate
-    save_dict(system_name, 'system_dict', system_dict)
+    sysUtil.save_dict(system_name, 'system_dict', system_dict)
     
-    plot_tms = tms21.copy()
-    plot_tms = plot_tms.set_index(pd.DatetimeIndex(plot_tms['Date']))
-    plot_tms=plot_tms.drop('Date', axis=1)
-    plotTitle = "Equity curve for  " + issue + ", " + str(start) + " to " + str(end)
-    plotIt.plot_v1(plot_tms['equity'][:-2], plotTitle)
-    plotTitle = "Drawdown for  " + issue + ", " + str(start) + " to " + str(end)
-    plotIt.plot_v1(plot_tms['drawdown'][:-2], plotTitle)
+    plotIt.plot_equity_drawdown(issue, tms21)
     
-    # Plot code
-    fig = plt.figure(figsize=(11,6))
-    fig.suptitle('CAR25 and issue price for' + issue)
-    ax1 = fig.add_subplot(111)
-    #ax1.plot(sst1.safef, color='green',label='safe-f')
-    ax1.plot(plot_tms.CAR25, color='blue',label='CAR25')
-    #ax1.plot(valData.equityValBeLongSignals, color='purple',label='ValBeLong')
-    
-    ax1.legend(loc='upper left', frameon=True, fontsize=8)
-    ax1.label_outer()
-    ax1.tick_params(axis='x',which='major',bottom=True)
-    ax1.minorticks_on()
-    ax1.grid(True, which='major', color='k', linestyle='-', alpha=0.6)
-    ax1.grid(True, which='minor', color='r', linestyle='-', alpha=0.2)
-    
-    #sst1['Pri']=valData.Pri
-    ax2 = ax1.twinx()
-    ax2.plot(plot_tms.Close, color='black',alpha=0.6,label='CLOSE',linestyle='--')
-    ax2.legend(loc='center left', frameon=True, fontsize=8)
-    ax2.label_outer()
-    fig.autofmt_xdate()
+    plotIt.plot_CAR25_close(issue, tms21)
     
     plotTitle = "Safe-f for " + issue
-    plotIt.plot_v1(plot_tms['safef'][:-2], plotTitle)
+    plotIt.plot_v1(tms21['safef'][:-2], plotTitle)

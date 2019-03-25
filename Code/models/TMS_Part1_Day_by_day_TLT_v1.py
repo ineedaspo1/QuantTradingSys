@@ -3,30 +3,20 @@
 Created on Fri Mar 15 19:34:25 2019
 
 @author: kruegkj
+TMS Part 1 day by day
 """
 
 # Import standard libraries
 import pandas as pd
 import numpy as np
-import datetime
+import datetime as dt
 from dateutil.relativedelta import relativedelta
 import matplotlib.pylab as plt
 from pandas.tseries.offsets import BDay
 import os
 import os.path
-import pickle
-import random
-import json
 import sys
 from scipy import stats
-
-from sklearn.model_selection import StratifiedShuffleSplit, TimeSeriesSplit
-from sklearn import svm
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier
-from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score
 
 # Import custom libraries
 from Code.lib.plot_utils import PlotUtility
@@ -42,6 +32,7 @@ from Code.utilities.stat_tests import stationarity_tests
 from Code.lib.config import current_feature, feature_dict
 from Code.models import models_utils
 from Code.lib.model_algos import AlgoUtility
+from Code.lib.tms_utils import TradeRisk
 
 plotIt = PlotUtility()
 timeUtil = TimeUtility()
@@ -55,6 +46,7 @@ featureGen = FeatureGenerator()
 dSet = DataRetrieve()
 modelAlgo = AlgoUtility()
 sysUtil = TradingSystemUtility()
+tradeRisk = TradeRisk()
 
 if __name__ == '__main__':
        
@@ -63,32 +55,28 @@ if __name__ == '__main__':
         print('You must set a system_name or set to """"!!!')
     
     system_name = sys.argv[1]
+    system_directory = sysUtil.get_system_dir(system_name)
     #ext_input_dict = sys.argv[2]
     
     print("Existing system")
     
     # Get info from system_dict
-    system_directory = sysUtil.get_system_dir(system_name)
-    if not os.path.exists(system_directory):
-        print("system doesn't exist")
-    else:
-        file_name = 'system_dict.json'    
-        system_dict = dSet.load_json(system_directory, file_name)
-        issue = system_dict["issue"]
-        direction = system_dict["direction"]
-        ver_num = system_dict["ver_num"]
-        # Perhaps only load these when needed?
-        pivotDate = system_dict["pivotDate"]
-        is_oos_ratio = system_dict["is_oos_ratio"]
-        oos_months = system_dict["oos_months"]
-        segments = system_dict["segments"]
+    system_dict = sysUtil.get_dict(system_directory, 'system_dict')
+    issue = system_dict["issue"]
+    
+    is_oos_ratio = system_dict["is_oos_ratio"]
+    oos_months = system_dict["oos_months"]
+    segments = system_dict["segments"]
     
     print(system_dict)
     
-    filename = "OOS_Equity_" + system_name + ".csv"
-    path = system_directory+ "\\" + filename
-    sst = pd.read_csv(path)
-    sst.tail(3)
+    sst1 = dSet.read_csv(system_directory,
+                        system_name,
+                        'OOS_Equity',
+                        'dbd'
+                        )
+    
+    sst = sst1.copy()
     
     # Initialize dataframe
     sst = sst.set_index(pd.DatetimeIndex(sst['Date']))
@@ -109,12 +97,12 @@ if __name__ == '__main__':
     f_days = sst.shape[0]
     print(f_days)
     
-    forecastHorizon = 84
-    initialEquity = 100000
+    forecastHorizon = f_days
+    initialEquity = 10000
     ddTolerance = 0.10
     tailRiskPct = 95
-    windowLength = 1*forecastHorizon
-    nCurves = 100
+    windowLength = .4*forecastHorizon
+    nCurves = 50
     
     years_in_forecast = forecastHorizon / 252.0
     print(years_in_forecast)
@@ -130,7 +118,7 @@ if __name__ == '__main__':
                'updateInterval'   : updateInterval
                }
     
-    dSet.save_json('tms_dict.json', system_directory, tms_dict)
+    sysUtil.save_dict(system_name, 'tms_dict', tms_dict)
     
     # Work with index instead of dates
     iStart = sst.index.get_loc(start)
@@ -140,12 +128,10 @@ if __name__ == '__main__':
     
     printDetails = False
     
-    # Calculate safe-f, CAR25
     for i in range(iStart, iEnd+1, updateInterval):
-        if printDetails: 
-            print ("\nDate: ", dt.datetime.strftime(sst.index[i], '%Y-%m-%d'))
-            print ("beLong: ", sst.signal[i])
-            print ("gain Ahead: {0:.4f}".format(sst.gainAhead[i]))
+        print ("\nDate: ", dt.datetime.strftime(sst.index[i], '%Y-%m-%d'))
+        print ("beLong: ", sst.signal[i])
+        print ("gain Ahead: {0:.4f}".format(sst.gainAhead[i]))
     
     #  Initialize variables
         curves = np.zeros(nCurves)
@@ -158,8 +144,7 @@ if __name__ == '__main__':
         
         while (abs(dd95-ddTolerance)>0.03):
             #  Generate nCurve equity curves
-            if printDetails: 
-                print  ("    Fraction {0:.2f}".format(fraction))
+            print  ("    Fraction {0:.2f}".format(fraction))
     #    
             for nc in range(nCurves):
                 #print ("working on curve ", nc)
@@ -171,10 +156,10 @@ if __name__ == '__main__':
                 nd = 0
                 while (horizonSoFar < forecastHorizon):
                     j = np.random.randint(0,windowLength)
-            #        print j
+                    #print(j)
                     nd = nd + 1
                     weightJ = 1.00 - j/windowLength
-            #        print weightJ
+                    #print (weightJ)
                     horizonSoFar = horizonSoFar + weightJ
                     signalJ = sst.signal[i-j]
                     if signalJ > 0:
@@ -186,31 +171,30 @@ if __name__ == '__main__':
                     maxEquity = max(equity,maxEquity)
                     drawdown = (maxEquity-equity)/maxEquity
                     maxDrawdown = max(drawdown,maxDrawdown)
-        #        print "equity, maxDD, ndraws:", equity, maxDrawdown, nd        
+                #print ("equity, maxDD, ndraws:", equity, maxDrawdown, nd)        
                 TWR[nc] = equity
                 maxDD[nc] = maxDrawdown
                 numberDraws[nc] = nd
         
             #  Find the drawdown at the tailLimit-th percentile        
             dd95 = stats.scoreatpercentile(maxDD,tailRiskPct)
-            if printDetails: 
-                print ('  DD {0}: {1:.3f} '.format(tailRiskPct, dd95))
+            #print ("  DD %i: %.3f " % (tailRiskPct, dd95))
             fraction = fraction * ddTolerance / dd95
             TWR25 = stats.scoreatpercentile(TWR,25)        
             CAR25 = 100*(((TWR25/initialEquity) ** (1.0/years_in_forecast))-1.0)
-        if printDetails: 
-            print ('Fraction: {0:.2f}'.format(fraction))
-            print ('CAR25: {0:.2f}'.format(CAR25))
+        
+        print ('Fraction: {0:.2f}'.format(fraction))
+        print ('CAR25: {0:.2f}'.format(CAR25))
         sst.iloc[i,sst.columns.get_loc('safef')] = fraction
         sst.iloc[i,sst.columns.get_loc('CAR25')] = CAR25
         #sst.loc[i,'CAR25'] = CAR25
         
-        print(sst.tail(3))  
-        
-        df_to_save = sst.copy()
-        df_to_save.reset_index(level=df_to_save.index.names, inplace=True)
-        filename = "TMS_Part1_" + system_name + ".csv"
-        df_to_save.to_csv(system_directory+ "\\" + filename, encoding='utf-8', index=False)
-        
-        df_to_save.tail(3)
-        print(df_to_save.tail(3))
+    print(sst.tail(3)) 
+    sst.reset_index(level='Date', inplace=True)
+    print(sst.tail(3))   
+#    dSet.save_csv(system_directory,
+#                  system_name,
+#                  'TMS_Part1',
+#                  'dbd',
+#                  sst
+#                  )

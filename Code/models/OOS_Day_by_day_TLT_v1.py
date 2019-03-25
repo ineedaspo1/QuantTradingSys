@@ -3,6 +3,8 @@
 Created on Mon Mar  4 10:35:32 2019
 
 @author: KRUEGKJ
+
+OOS day by day
 """
 
 # Import standard libraries
@@ -62,32 +64,30 @@ if __name__ == '__main__':
         print('You must set a system_name or set to """"!!!')
     
     system_name = sys.argv[1]
+    best_model_name = sys.argv[2]
+    best_model_segment = sys.argv[3]
+    
+    system_directory = sysUtil.get_system_dir(system_name)
     #ext_input_dict = sys.argv[2]
     
     print("Existing system")
     
     # Get info from system_dict
-    system_directory = sysUtil.get_system_dir(system_name)
-    if not os.path.exists(system_directory):
-        print("system doesn't exist")
-    else:
-        file_name = 'system_dict.json'    
-        system_dict = dSet.load_json(system_directory, file_name)
-        issue = system_dict["issue"]
-        direction = system_dict["direction"]
-        ver_num = system_dict["ver_num"]
-        # Perhaps only load these when needed?
-        pivotDate = system_dict["pivotDate"]
-        is_oos_ratio = system_dict["is_oos_ratio"]
-        oos_months = system_dict["oos_months"]
-        segments = system_dict["segments"]
+    system_dict = sysUtil.get_dict(system_directory, 'system_dict')
+    issue = system_dict["issue"]
+    
+    is_oos_ratio = system_dict["is_oos_ratio"]
+    oos_months = system_dict["oos_months"]
+    segments = system_dict["segments"]
+    
+    system_dict["best_model_name"] = best_model_name
+    system_dict["best_model_segment"] = best_model_segment
+    sysUtil.save_dict(system_name, 'system_dict', system_dict)
     
     print(system_dict)
     
     # get feature list
-    file_name = 'feature_dict.json'
-    feature_dict = dSet.load_json(system_directory, file_name)    
-    print(feature_dict)
+    feature_dict = sysUtil.get_dict(system_directory, 'feature_dict')
     
     # Set IS-OOS parameters
     pivotDate = system_dict['pivotDate']
@@ -119,8 +119,6 @@ if __name__ == '__main__':
     # Best model should be updated in system_dict
     # If not, ask for input of model 
     # Also need to account for segment in title
-    best_model_name = "SVM"
-    best_model_segment = "segment-0"
     #best_model_name = system_dict["best_model"]
     file_title = "fit-model-" + best_model_name + "-IS-" + system_name + "-" + best_model_segment +".sav"
     file_name = os.path.join(system_directory, file_title)
@@ -344,8 +342,19 @@ if __name__ == '__main__':
     df_to_save.reset_index(level=df_to_save.index.names, inplace=True)
     df_to_save.columns=['Date','signal','gainAhead','Close']
     #print(df_to_save)
-    filename = "OOS_Equity_" + system_name + ".csv"
-    df_to_save.to_csv(system_directory+ "\\" + filename, encoding='utf-8', index=False)
+    dSet.save_csv(system_directory,
+                  system_name,
+                  'OOS_Equity',
+                  'new', 
+                  df_to_save
+                  )
+    
+    dSet.save_csv(system_directory,
+                  system_name,
+                  'OOS_Equity',
+                  'dbd', 
+                  df_to_save
+                  )
 
     print(df_to_save.tail(10))
     
