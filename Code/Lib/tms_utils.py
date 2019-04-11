@@ -23,7 +23,7 @@ class TradeRisk:
         
         years_in_forecast = forecastHorizon / 252.0
         
-        printDetails = True
+        printDetails = False
         
         for i in range(iStart, iEnd+1, updateInterval):
             if printDetails: 
@@ -136,3 +136,4 @@ class PriceUpdate:
         '''
     def nothing_yet():
         hi = ""
+        

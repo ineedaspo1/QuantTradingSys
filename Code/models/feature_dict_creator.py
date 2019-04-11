@@ -25,30 +25,40 @@ def gen_dict_name():
 feature_func_dict = {'mom_function': {
                         'RSI':{'num_params': 1, 'param_range1': [2,10]},
                         'PPO':{'num_params': 2, 'param_range1': [2,10], 'param_range2': [4,20]},
-                        'CMO':{'num_params': 1, 'param_range1': [2,10]},
+                        'CMO':{'num_params': 1, 'param_range1': [2,10]}
+                         },
+                     'mom_function2': {
                         'CCI':{'num_params': 1, 'param_range1': [2,10]},
                         'ROC':{'num_params': 1, 'param_range1': [2,10]},
                         'UltimateOscillator': {'num_params': 3, 'param_range1': [1,10], 'param_range2': [2,20], 'param_range3': [3,30]}
                          },
-                 
                      'volume_function': {
                         'ChaikinAD':{'num_params': 0},
                         'ChaikinADOSC':{'num_params': 2,
                                         'param_range1': [3,10],
                                         'param_range2': [5,12]},
                         'OBV':{'num_params': 0},
-                        'MFI':{'num_params': 1, 'param_range1': [1,10]},
-                        'ease_OfMvmnt':{'num_params': 1, 'param_range1': [1,10]}
+                        'MFI':{'num_params': 1, 'param_range1': [3,10]},
+                        'ease_OfMvmnt':{'num_params': 1, 'param_range1': [3,10]}
                          },
                      'transform_function': {
-                         'Lag':{'num_params': 1, 'param_range1': [1,10]}
+                         'Lag':{'num_params': 1, 'param_range1': [2,8]}
                          },
                      'transform2_function': {
-                         'Lag':{'num_params': 1, 'param_range1': [3,10]}
+                         'Lag':{'num_params': 1, 'param_range1': [3,9]}
                          },
-                     'osc_Studies_function': {
-                         'DetrendPO': {'num_params': 1, 'param_range1': [2,10]}
+                     'transform3_function': {
+                         'Lag':{'num_params': 1, 'param_range1': [4,10]}
                          },
+                     'transform4_function': {
+                         'Lag':{'num_params': 1, 'param_range1': [5,11]}
+                         },
+                     'transform5_function': {
+                         'Lag':{'num_params': 1, 'param_range1': [5,15]}
+                         },
+#                     'osc_Studies_function': {
+#                         'DetrendPO': {'num_params': 1, 'param_range1': [2,10]}
+#                         },
                      'volatility_function': {
                          'ATR': {'num_params': 1, 'param_range1': [1,10]},
                          'NATR': {'num_params': 1, 'param_range1': [1,10]},
@@ -62,24 +72,27 @@ feature_func_dict = {'mom_function': {
 #                         'HigherClose': {'num_params': 1, 'param_range1': [1,10]},
 #                         'LowerClose': {'num_params': 1, 'param_range1': [1,10]}
 #                         },
-                     'overlap_ma1_functions': {
-                         'exp_MA': {'num_params': 1, 'param_range1': [2,10]},
-                         'simple_MA': {'num_params': 1, 'param_range1': [2,10]},
-                         'weighted_MA': {'num_params': 1, 'param_range1': [2,10]},
-                         'triple_EMA': {'num_params': 1, 'param_range1': [2,10]}
-                         },
+#                     'overlap_ma1_functions': {
+#                         'exp_MA': {'num_params': 1, 'param_range1': [2,10]},
+#                         'simple_MA': {'num_params': 1, 'param_range1': [2,10]},
+#                         'weighted_MA': {'num_params': 1, 'param_range1': [2,10]},
+#                         'triple_EMA': {'num_params': 1, 'param_range1': [2,10]}
+#                         },
                      'overlap_ma2_functions': {
                          'triangMA': {'num_params': 1, 'param_range1': [2,10]},
-                         'dblEMA': {'num_params': 1, 'param_range1': [2,10]},
+                         'dblEMA': {'num_params': 1, 'param_range1': [2,10]}
+                         },
+                     'overlap_ma3_functions': {
                          'kaufman_AMA': {'num_params': 1, 'param_range1': [2,10]},
                          'delta_MESA_AMA': {'num_params': 0}
-                         },
-                      'overlap_price_functions': {
-                         'inst_Trendline': {'num_params': 0},
-                         'mid_point': {'num_params': 1, 'param_range1': [2,10]},
-                         'mid_price': {'num_params': 1, 'param_range1': [2,10]},
-                         'pSAR': {'num_params': 1, 'param_range1': [2,10]}
                          }
+#                     ,
+#                      'overlap_price_functions': {
+#                         'inst_Trendline': {'num_params': 0},
+#                         'mid_point': {'num_params': 1, 'param_range1': [2,10]},
+#                         'mid_price': {'num_params': 1, 'param_range1': [2,10]},
+#                         'pSAR': {'num_params': 1, 'param_range1': [2,10]}
+#                         }
                      }
 
 transform_list = [10, 20, 30, 40, 50]
@@ -87,7 +100,7 @@ transform_list = [10, 20, 30, 40, 50]
 # create  
 list_of_input_dicts = []
 
-num_dicts_to_make = 40
+num_dicts_to_make = 300
 dict_ctr = 0
 
 while dict_ctr < num_dicts_to_make:
@@ -144,7 +157,7 @@ while dict_ctr < num_dicts_to_make:
         #temp_dict[var].append(temp)
     #print(temp_dict)
     #print("Saving ", dict_name)
-    dSet.save_pickle(temp_dict, current_directory, dict_name)
+    dSet.save_pickle(dict_name, current_directory, temp_dict)
     dict_ctr += 1
 
 program_name = "IS_Day_by_day_TLT_v1.py"

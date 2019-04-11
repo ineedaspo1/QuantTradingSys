@@ -168,9 +168,11 @@ class Transformers:
                 dataSet: Dataset with new feature generated.
         """
         temp =[]
-        new_colname = str(colname) + '_Normalized'
+        new_colname = str(colname) + '_Normalized_' + str(n)
         feature_dict[new_colname] = 'Keep'
+        #print(feature_dict)
         feature_dict[current_feature['Latest']] = 'Drop'
+        #print(feature_dict)
         current_feature['Latest'] = new_colname
         # clean NaN's
 #        print("tail before clean: ")

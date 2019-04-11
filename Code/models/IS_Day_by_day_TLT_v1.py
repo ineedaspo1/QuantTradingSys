@@ -16,30 +16,27 @@ from pandas.tseries.offsets import BDay
 import os
 import os.path
 import pickle
-import random
-import json
 import sys
-import logging
 
-from sklearn.model_selection import StratifiedShuffleSplit, TimeSeriesSplit
-from sklearn import svm
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier
-from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score
+#from sklearn.model_selection import StratifiedShuffleSplit, TimeSeriesSplit
+#from sklearn import svm
+#from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier
+#from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+#from sklearn.neighbors import KNeighborsClassifier
+#from sklearn.tree import DecisionTreeClassifier
+#from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score
 
 # Import custom libraries
 from Code.lib.plot_utils import PlotUtility
 from Code.lib.time_utils import TimeUtility
 from Code.lib.retrieve_data import DataRetrieve, ComputeTarget
 from Code.lib.retrieve_system_info import TradingSystemUtility
-from Code.lib.candle_indicators import CandleIndicators
+#from Code.lib.candle_indicators import CandleIndicators
 from Code.lib.transformers import Transformers
-from Code.lib.ta_momentum_studies import TALibMomentumStudies
+#from Code.lib.ta_momentum_studies import TALibMomentumStudies
 from Code.lib.model_utils import ModelUtility, TimeSeriesSplitImproved
 from Code.lib.feature_generator import FeatureGenerator
-from Code.utilities.stat_tests import stationarity_tests
+#from Code.utilities.stat_tests import stationarity_tests
 from Code.lib.config import current_feature, feature_dict
 from Code.models import models_utils
 from Code.lib.model_algos import AlgoUtility
@@ -47,13 +44,12 @@ from Code.lib.model_algos import AlgoUtility
 plotIt = PlotUtility()
 timeUtil = TimeUtility()
 ct = ComputeTarget()
-candle_ind = CandleIndicators()
+#candle_ind = CandleIndicators()
 dSet = DataRetrieve()
-taLibMomSt = TALibMomentumStudies()
+#taLibMomSt = TALibMomentumStudies()
 transf = Transformers()
 modelUtil = ModelUtility()
 featureGen = FeatureGenerator()
-dSet = DataRetrieve()
 modelAlgo = AlgoUtility()
 sysUtil = TradingSystemUtility()
 
@@ -73,7 +69,7 @@ if __name__ == '__main__':
         print("New system")
         issue = "TLT"
         direction = "Long"
-        ver_num = 1
+        ver_num = 3
         system_dict = sysUtil.get_system_dict(system_name, issue, direction, ver_num)
     
         pivotDate = str(datetime.date(2019, 1, 3)) # need as string for serialization
@@ -87,17 +83,21 @@ if __name__ == '__main__':
         system_dict['segments'] = segments
     
         system_name = system_dict['system_name']
-        
         sysUtil.save_dict(system_name, 'system_dict', system_dict)
     else:
         print("Existing system")
         system_directory = sysUtil.get_system_dir(system_name)
         system_dict = sysUtil.get_dict(system_directory, 'system_dict')
+        is_oos_ratio = system_dict["is_oos_ratio"]
+        oos_months = system_dict["oos_months"]
+        segments = system_dict["segments"]
+        issue = system_dict['issue']
         
     print(system_dict)
     system_directory = sysUtil.get_system_dir(system_name)  
     # Set IS-OOS parameters
     pivotDate = system_dict['pivotDate']
+    
     #pivotDate = datetime.strptime(pivotDate, '%Y-%m-%d')
     print(pivotDate)
     
@@ -126,23 +126,38 @@ if __name__ == '__main__':
         print("no external input_dict file, reference coded parameters")    
         input_dict = {} # initialize
         input_dict = {'f1': 
-                      {'fname' : 'PPO', 
-                       'params' : [2,5],
+                      {'fname' : 'RSI', 
+                       'params' : [8],
                        'transform' : ['Normalized', 20]
                        },
                       'f2': 
-                      {'fname' : 'MFI', 
-                       'params' : [2],
+                      {'fname' : 'Lag', 
+                       'params' : [7],
                        'transform' : ['Normalized', 20]
                        },
                       'f3': 
                       {'fname' : 'MFI', 
-                       'params' : [2],
+                       'params' : [3],
                        'transform' : ['Scaler', 'Robust']
                        },
                       'f4': 
-                      {'fname' : 'OBV', 
-                       'params' : [],
+                      {'fname' : 'DetrendPO', 
+                       'params' : [6],
+                       'transform' : ['Normalized', 20]
+                       },
+                      'f5': 
+                      {'fname' : 'NATR', 
+                       'params' : [9],
+                       'transform' : ['Normalized', 50]
+                       },
+                      'f6': 
+                      {'fname' : 'exp_MA', 
+                       'params' : [4],
+                       'transform' : ['Normalized', 20]
+                       },
+                      'f7': 
+                      {'fname' : 'triangMA', 
+                       'params' : [4],
                        'transform' : ['Normalized', 20]
                        }
                      }
@@ -159,11 +174,13 @@ if __name__ == '__main__':
     
     # save ext input name to system_dict
     system_dict['extInputDict'] = ext_input_dict
+    sysUtil.save_dict(system_name, 'system_dict', system_dict)
     
     # now save locally to system
     sysUtil.save_dict(system_name, 'input_dict', input_dict)    
 
     dataSet2 = featureGen.generate_features(dataSet, input_dict)
+    current_feature['Latest'] = 'Volume'
     dataSet2 = transf.normalizer(dataSet, 'Volume', 50)
     print(dataSet2.tail(5))
     
@@ -178,7 +195,7 @@ if __name__ == '__main__':
     # Get columns to drop from feature_dict
     col_vals = [k for k,v in feature_dict.items() if v == 'Drop']
     # And set OHLC, etc., to Drop for cleaner correlation analysis
-    to_drop = ['Open','High','Low', 'gainAhead', 'Close', 'beLong', 'Volume', 'AdjClose']
+    to_drop = ['Open','High','Low', 'gainAhead', 'Close', 'beLong', 'AdjClose']
     for x in to_drop:
         col_vals.append(x)
     mmData = dSet.drop_columns(dataSet2, col_vals)
@@ -191,7 +208,7 @@ if __name__ == '__main__':
     upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(np.bool))
     
     # Find index of feature columns with correlation greater than 0.85
-    to_drop = [column for column in upper.columns if any(upper[column] > 0.85)]
+    to_drop = [column for column in upper.columns if any(upper[column] > 0.7)]
     print('Column(s) to drop: %s' % to_drop)
     
     # If there are columns to Drop, change feature dict to indicate Drop
@@ -255,25 +272,30 @@ if __name__ == '__main__':
         ######################
         #  Make 'iterations' index vectors for the train-test split
         iterations = 100
-        tscv = TimeSeriesSplit(n_splits=4)
+        #tscv = TimeSeriesSplit(n_splits=4)
         
         dX, dy = modelUtil.prepare_for_classification(mmData)        
         
-        tscvi = TimeSeriesSplitImproved(n_splits=8)
+        tscvi = TimeSeriesSplitImproved(n_splits=5)
         
         # Make predictions with models
-        to_model = {"RF": modelAlgo.setRFClass(min_samples_split=20,
+        to_model = {"RF": modelAlgo.setRFModel(min_samples_split=20,
                                                n_estimators=200,
                                                max_features=None
                                                ),
-                    "KNN": modelAlgo.setKNNClass(n_neighbors=3),
-                    "SVM": modelAlgo.setSVMClass(),
-                    "GTB": modelAlgo.setGTBClass(learning_rate=0.05,
+                    "KNN": modelAlgo.setKNNModel(n_neighbors=3),
+                    "SVM": modelAlgo.setSVMModel(),
+                    "GTB": modelAlgo.setGTBModel(learning_rate=0.1,
                                                  subsample=0.5,
-                                                 max_depth=6,
-                                                 n_estimators=10
+                                                 n_estimators=20,
+                                                 min_samples_leaf=20,
+                                                 max_depth=3,
+                                                 max_features='auto',
+                                                 random_state = 0
                                                 ),
-                    "QDA": modelAlgo.setQDAClass()}
+                    "QDA": modelAlgo.setQDAModel(),
+                    "LogReg": modelAlgo.setLogRegModel(solver='lbfgs',
+                                                       max_iter=1000)}
         for key, value in to_model.items():
             modelname = key
             model = value
@@ -284,7 +306,7 @@ if __name__ == '__main__':
                          'nrows':nrows,
                          'system_name':system_name
                         }
-            #print(modelname)
+            print(modelname)
             #print(model)
         
             model_results, fit_model = modelUtil.model_and_test(dX,
@@ -318,20 +340,20 @@ if __name__ == '__main__':
              'beLongCount',
              'Features',
              'FeatureCount',
-             'IS-Accuracy',
-             'IS-Precision',
-             'IS-RMC',
-             'IS-RF',
-             'IS-NPV',
-             'IS-MCC',
-             'IS-EV',
-             'OOS-Accuracy',
-             'OOS-Precision',
-             'OOS-RMC',
-             'OOS-RF',
-             'OOS-NPV',
-             'OOS-MCC',
-             'OOS-EV',
+             'Train-Accuracy',
+             'Train-Precision',
+             'Train-RMC',
+             'Train-RF',
+             'Train-NPV',
+             'Train-MCC',
+             'Train-EV',
+             'Test-Accuracy',
+             'Test-Precision',
+             'Test-RMC',
+             'Test-RF',
+             'Test-NPV',
+             'Test-MCC',
+             'Test-EV',
             ]]
     #print(df)
     

@@ -216,24 +216,24 @@ class ModelUtility:
                               'beLongCount': str(np.count_nonzero(dy==1)), 
                               'Features': col_save,
                               'FeatureCount': feature_count,
-                              'IS-Accuracy': np.mean(accuracy_scores_is),
-                              'IS-Precision': np.mean(precision_scores_is),
-                              'IS-RMC': is_cm_results["rmc"],
-                              'IS-RF': is_cm_results["rf"],
-                              'IS-NPV': is_cm_results["npv"],
-                              'IS-MCC': is_cm_results["mcc"],
-                              'IS-Recall': np.mean(recall_scores_is),
-                              'IS-F1': np.mean(f1_scores_is),
-                              'IS-EV': is_ev*100,
-                              'OOS-Accuracy':  np.mean(accuracy_scores_oos),
-                              'OOS-Precision': np.mean(precision_scores_oos),
-                              'OOS-RMC': oos_cm_results["rmc"],
-                              'OOS-RF': oos_cm_results["rf"],
-                              'OOS-NPV': oos_cm_results["npv"],
-                              'OOS-MCC': oos_cm_results["mcc"],
-                              'OOS-Recall': np.mean(recall_scores_oos),
-                              'OOS-F1': np.mean(f1_scores_oos),
-                              'OOS-EV': oos_ev*100
+                              'Train-Accuracy': np.mean(accuracy_scores_is),
+                              'Train-Precision': np.mean(precision_scores_is),
+                              'Train-RMC': is_cm_results["rmc"],
+                              'Train-RF': is_cm_results["rf"],
+                              'Train-NPV': is_cm_results["npv"],
+                              'Train-MCC': is_cm_results["mcc"],
+                              'Train-Recall': np.mean(recall_scores_is),
+                              'Train-F1': np.mean(f1_scores_is),
+                              'Train-EV': is_ev*100,
+                              'Test-Accuracy':  np.mean(accuracy_scores_oos),
+                              'Test-Precision': np.mean(precision_scores_oos),
+                              'Test-RMC': oos_cm_results["rmc"],
+                              'Test-RF': oos_cm_results["rf"],
+                              'Test-NPV': oos_cm_results["npv"],
+                              'Test-MCC': oos_cm_results["mcc"],
+                              'Test-Recall': np.mean(recall_scores_oos),
+                              'Test-F1': np.mean(f1_scores_oos),
+                              'Test-EV': oos_ev*100
                               }
                             )
         
@@ -297,7 +297,8 @@ class TimeSeriesSplitImproved(TimeSeriesSplit):
     of test sets is ``n_splits + 2 - train_splits - test_splits``.
     """
  
-    def split(self, X, y=None, groups=None, fixed_length=True, train_splits=4, test_splits=1):
+    def split(self, X, y=None, groups=None, fixed_length=True, train_splits=1, test_splits=1):
+        # train_splits=2, test_splits=1
         """Generate indices to split data into training and test set.
         Parameters
         ----------

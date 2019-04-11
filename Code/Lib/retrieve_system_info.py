@@ -59,7 +59,7 @@ class TradingSystemUtility:
         dict_lookup = {'system_dict': 'system_dict.json',
                        'feature_dict': 'feature_dict.json',
                        'input_dict': 'input_dict.pkl',
-                       'tms_dict': 'feature_dict.json'}
+                       'tms_dict': 'tms_dict.json'}
         
         file_name = dict_lookup[dict_name]
         fn_split = file_name.split(".",1)
@@ -77,7 +77,7 @@ class TradingSystemUtility:
         dict_lookup = {'system_dict': 'system_dict.json',
                        'feature_dict': 'feature_dict.json',
                        'input_dict': 'input_dict.pkl',
-                       'tms_dict': 'feature_dict.json'}
+                       'tms_dict': 'tms_dict.json'}
         
         file_name = dict_lookup[dict_name]
         fn_split = file_name.split(".",1)
